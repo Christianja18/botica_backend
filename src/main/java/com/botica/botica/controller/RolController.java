@@ -2,6 +2,7 @@ package com.botica.botica.controller;
 
 import com.botica.botica.entity.Rol;
 import com.botica.botica.service.RolService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/roles")
+@Tag(name = "Roles", description = "Operaciones CRUD para roles")
 @RequiredArgsConstructor
 public class RolController {
 

@@ -2,6 +2,7 @@ package com.botica.botica.controller;
 
 import com.botica.botica.entity.Proveedor;
 import com.botica.botica.service.ProveedorService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/proveedores")
+@Tag(name = "Proveedores", description = "Operaciones CRUD para proveedores")
 @RequiredArgsConstructor
 public class ProveedorController {
 

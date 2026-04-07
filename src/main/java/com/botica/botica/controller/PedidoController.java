@@ -2,6 +2,7 @@ package com.botica.botica.controller;
 
 import com.botica.botica.entity.Pedido;
 import com.botica.botica.service.PedidoService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/pedidos")
+@Tag(name = "Pedidos", description = "Operaciones CRUD para pedidos")
 @RequiredArgsConstructor
 public class PedidoController {
 

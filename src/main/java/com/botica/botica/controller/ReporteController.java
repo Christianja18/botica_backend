@@ -3,6 +3,7 @@ package com.botica.botica.controller;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.entity.Usuario;
 import com.botica.botica.service.ReporteService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reportes")
+@Tag(name = "Reportes", description = "Operaciones de reportes y estadísticas")
 @RequiredArgsConstructor
 public class ReporteController {
 
