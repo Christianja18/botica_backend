@@ -1,33 +1,70 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+﻿# Maven build output
+/target/
 
-### STS ###
-.apt_generated
+# Maven wrapper
+/.mvn/wrapper/maven-wrapper.jar
+
+# IDE files
+/.idea/
+*.iml
+*.iws
+*.ipr
 .classpath
-.factorypath
 .project
-.settings
+.settings/
 .springBeans
+.apt_generated
+.factorypath
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# VS Code
+/.vscode/
 
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+.nb-gradle/
 
-### VS Code ###
-.vscode/
+# Build directories
+/build/
+
+# Generated files
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and secret files
+.env
+.env.*
+application-*.properties
+credentials.*
+secrets.*
+
+# Local Docker config
+docker-compose.override.yml
+
+# Local DB files
+*.h2.db
+*.mv.db
+*.sqlite
+
+# Keep source and normal project files tracked
+!src/
+!pom.xml
+!README.md
