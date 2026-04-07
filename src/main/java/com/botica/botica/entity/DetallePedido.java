@@ -1,5 +1,7 @@
 package com.botica.botica.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,6 +11,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "detalle_pedidos")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,6 +23,7 @@ public class DetallePedido {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_pedido", nullable = false)
+    @JsonBackReference
     private Pedido pedido;
 
     @ManyToOne(fetch = FetchType.LAZY)

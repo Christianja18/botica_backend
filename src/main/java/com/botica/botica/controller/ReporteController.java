@@ -9,7 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +39,16 @@ public class ReporteController {
 
     @PostMapping("/generar/ventas")
     public ResponseEntity<Reporte> generarReporteVentas(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin,
+            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") java.time.LocalDate fechaInicio,
+            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") java.time.LocalDate fechaFin,
             @RequestParam Integer idUsuario) {
         // Placeholder: Obtener usuario; en prod, usar autenticación
         Usuario usuario = new Usuario(); // Simular
         usuario.setIdUsuario(idUsuario);
-        Reporte reporte = reporteService.generarReporteVentas(fechaInicio, fechaFin, usuario);
+        Reporte reporte = reporteService.generarReporteVentas(
+                fechaInicio.atStartOfDay(),
+                fechaFin.atTime(23, 59, 59),
+                usuario);
         return ResponseEntity.ok(reporte);
     }
 

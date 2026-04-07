@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex) {
         logger.error("Resource not found: {}", ex.getMessage());
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         body.put("message", ex.getMessage());
         body.put("status", HttpStatus.NOT_FOUND.value());
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleBadRequestException(BadRequestException ex) {
         logger.warn("Bad request: {}", ex.getMessage());
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         body.put("message", ex.getMessage());
         body.put("status", HttpStatus.BAD_REQUEST.value());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
         logger.error("Internal server error: {}", ex.getMessage(), ex);
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         body.put("message", "Internal Server Error");
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
