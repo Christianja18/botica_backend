@@ -1,14 +1,18 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.ProveedorDTO;
 import com.botica.botica.entity.Proveedor;
+import com.botica.botica.mapper.ProveedorMapper;
 import com.botica.botica.service.ProveedorService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/proveedores")
@@ -17,26 +21,36 @@ import java.util.List;
 public class ProveedorController {
 
     private final ProveedorService proveedorService;
+    private final ProveedorMapper proveedorMapper;
 
     @GetMapping
-    public ResponseEntity<List<Proveedor>> getAllProveedores() {
-        return ResponseEntity.ok(proveedorService.findAll());
+    public ResponseEntity<List<ProveedorDTO>> getAllProveedores() {
+        List<Proveedor> proveedores = proveedorService.findAll();
+        List<ProveedorDTO> dtos = proveedores.stream()
+                .map(proveedorMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Proveedor> getProveedorById(@PathVariable Integer id) {
-        return ResponseEntity.ok(proveedorService.findById(id));
+    public ResponseEntity<ProveedorDTO> getProveedorById(@PathVariable Integer id) {
+        Proveedor proveedor = proveedorService.findById(id);
+        return ResponseEntity.ok(proveedorMapper.toDTO(proveedor));
     }
 
     @PostMapping
-    public ResponseEntity<Proveedor> createProveedor(@Valid @RequestBody Proveedor proveedor) {
-        return ResponseEntity.ok(proveedorService.save(proveedor));
+    public ResponseEntity<ProveedorDTO> createProveedor(@Valid @RequestBody ProveedorDTO proveedorDTO) {
+        Proveedor proveedor = proveedorMapper.toEntity(proveedorDTO);
+        Proveedor saved = proveedorService.save(proveedor);
+        return ResponseEntity.status(HttpStatus.CREATED).body(proveedorMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Proveedor> updateProveedor(@PathVariable Integer id, @Valid @RequestBody Proveedor proveedor) {
-        proveedor.setIdProveedor(id);
-        return ResponseEntity.ok(proveedorService.save(proveedor));
+    public ResponseEntity<ProveedorDTO> updateProveedor(@PathVariable Integer id, @Valid @RequestBody ProveedorDTO proveedorDTO) {
+        Proveedor existing = proveedorService.findById(id);
+        Proveedor updated = proveedorMapper.updateEntity(proveedorDTO, existing);
+        Proveedor saved = proveedorService.save(updated);
+        return ResponseEntity.ok(proveedorMapper.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")

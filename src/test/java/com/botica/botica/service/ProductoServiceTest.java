@@ -3,28 +3,40 @@ package com.botica.botica.service;
 import com.botica.botica.entity.Categoria;
 import com.botica.botica.entity.Producto;
 import com.botica.botica.entity.Proveedor;
+import com.botica.botica.repository.CategoriaRepository;
 import com.botica.botica.repository.ProductoRepository;
+import com.botica.botica.repository.ProveedorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
+@SpringBootTest
+@TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:testdb",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 class ProductoServiceTest {
 
-    @Mock
+    @Autowired
+    private ProductoService productoService;
+
+    @Autowired
     private ProductoRepository productoRepository;
 
-    @InjectMocks
-    private ProductoService productoService;
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+
+    @Autowired
+    private ProveedorRepository proveedorRepository;
 
     private Producto producto;
     private Categoria categoria;
@@ -32,46 +44,75 @@ class ProductoServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        categoria = new Categoria(1, "Medicamentos", "Productos farmacéuticos");
-        proveedor = new Proveedor(1, "Proveedor ABC", "12345678901", "987654321", "proveedor@example.com", "Dirección", null);
-        producto = new Producto(1, "Paracetamol", "Analgésico", BigDecimal.valueOf(5.00), BigDecimal.valueOf(3.50), categoria, proveedor, false, null);
+        // Limpiar la base de datos
+        productoRepository.deleteAll();
+        categoriaRepository.deleteAll();
+        proveedorRepository.deleteAll();
+
+        // Crear datos de prueba
+        categoria = new Categoria();
+        categoria.setNombre("Medicamentos");
+        categoria.setDescripcion("Productos farmacéuticos");
+        categoria = categoriaRepository.save(categoria);
+
+        proveedor = new Proveedor();
+        proveedor.setNombre("Proveedor ABC");
+        proveedor.setRuc("12345678901");
+        proveedor.setTelefono("987654321");
+        proveedor.setEmail("proveedor@example.com");
+        proveedor.setDireccion("Dirección");
+        proveedor = proveedorRepository.save(proveedor);
+
+        producto = new Producto();
+        producto.setNombre("Paracetamol");
+        producto.setDescripcion("Analgésico");
+        producto.setPrecioVenta(BigDecimal.valueOf(5.00));
+        producto.setPrecioCompra(BigDecimal.valueOf(3.50));
+        producto.setCategoria(categoria);
+        producto.setProveedor(proveedor);
+        producto.setRequiereReceta(false);
+        producto = productoRepository.save(producto);
     }
 
     @Test
     void testFindAll() {
-        when(productoRepository.findAll()).thenReturn(Arrays.asList(producto));
         List<Producto> result = productoService.findAll();
         assertEquals(1, result.size());
-        verify(productoRepository, times(1)).findAll();
+        assertEquals("Paracetamol", result.get(0).getNombre());
     }
 
     @Test
     void testFindById() {
-        when(productoRepository.findById(1)).thenReturn(Optional.of(producto));
-        Producto result = productoService.findById(1);
+        Producto result = productoService.findById(producto.getIdProducto());
         assertEquals("Paracetamol", result.getNombre());
     }
 
     @Test
     void testFindByNombre() {
-        when(productoRepository.findByNombreContainingIgnoreCase("para")).thenReturn(Arrays.asList(producto));
         List<Producto> result = productoService.findByNombre("para");
         assertEquals(1, result.size());
+        assertEquals("Paracetamol", result.get(0).getNombre());
     }
 
     @Test
     void testSave() {
-        when(productoRepository.save(any(Producto.class))).thenReturn(producto);
-        Producto result = productoService.save(producto);
+        Producto newProducto = new Producto();
+        newProducto.setNombre("Ibuprofeno");
+        newProducto.setDescripcion("Antiinflamatorio");
+        newProducto.setPrecioVenta(BigDecimal.valueOf(8.00));
+        newProducto.setPrecioCompra(BigDecimal.valueOf(5.50));
+        newProducto.setCategoria(categoria);
+        newProducto.setProveedor(proveedor);
+        newProducto.setRequiereReceta(false);
+
+        Producto result = productoService.save(newProducto);
         assertNotNull(result);
-        verify(productoRepository, times(1)).save(producto);
+        assertEquals("Ibuprofeno", result.getNombre());
     }
 
     @Test
     void testDeleteById() {
-        doNothing().when(productoRepository).deleteById(1);
-        productoService.deleteById(1);
-        verify(productoRepository, times(1)).deleteById(1);
+        productoService.deleteById(producto.getIdProducto());
+        assertThrows(Exception.class, () -> productoService.findById(producto.getIdProducto()));
     }
 }

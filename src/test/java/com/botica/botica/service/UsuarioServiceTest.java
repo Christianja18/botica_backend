@@ -2,73 +2,111 @@ package com.botica.botica.service;
 
 import com.botica.botica.entity.Rol;
 import com.botica.botica.entity.Usuario;
+import com.botica.botica.exception.BadRequestException;
+import com.botica.botica.repository.RolRepository;
 import com.botica.botica.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
+@SpringBootTest
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:testdb",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 class UsuarioServiceTest {
 
-    @Mock
+    @Autowired
+    private UsuarioService usuarioService;
+
+    @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @InjectMocks
-    private UsuarioService usuarioService;
+    @Autowired
+    private RolRepository rolRepository;
 
     private Usuario usuario;
     private Rol rol;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        rol = new Rol(1, "Admin", "Administrador", true, true, true, true, true, null);
-        usuario = new Usuario(1, "Juan", "Perez", "juan@example.com", "hash", null, true, rol);
+        usuarioRepository.deleteAll();
+        rolRepository.deleteAll();
+
+        rol = new Rol();
+        rol.setNombre("Admin");
+        rol.setDescripcion("Administrador");
+        rol.setPuedeVender(true);
+        rol.setPuedeAdministrarInventario(true);
+        rol.setPuedeVerReportes(true);
+        rol.setPuedeAdministrarUsuarios(true);
+        rol.setActivo(true);
+        rol = rolRepository.save(rol);
+
+        usuario = new Usuario();
+        usuario.setNombre("Juan");
+        usuario.setApellido("Perez");
+        usuario.setEmail("juan@example.com");
+        usuario.setPasswordHash("password123");
+        usuario.setActivo(true);
+        usuario.setRol(rol);
+        usuario = usuarioRepository.save(usuario);
     }
 
     @Test
     void testFindAll() {
-        when(usuarioRepository.findAll()).thenReturn(Arrays.asList(usuario));
         List<Usuario> result = usuarioService.findAll();
         assertEquals(1, result.size());
-        verify(usuarioRepository, times(1)).findAll();
+        assertEquals("Juan", result.get(0).getNombre());
     }
 
     @Test
     void testFindById() {
-        when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
-        Usuario result = usuarioService.findById(1);
+        Usuario result = usuarioService.findById(usuario.getIdUsuario());
         assertEquals("Juan", result.getNombre());
     }
 
     @Test
     void testSave() {
-        when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-        Usuario result = usuarioService.save(usuario);
+        Usuario newUsuario = new Usuario();
+        newUsuario.setNombre("Maria");
+        newUsuario.setApellido("Garcia");
+        newUsuario.setEmail("maria@example.com");
+        newUsuario.setPasswordHash("password123");
+        newUsuario.setActivo(true);
+        newUsuario.setRol(rol);
+
+        Usuario result = usuarioService.save(newUsuario);
         assertNotNull(result);
-        verify(usuarioRepository, times(1)).save(usuario);
+        assertEquals("Maria", result.getNombre());
+        assertNotEquals("password123", result.getPasswordHash());
+        assertTrue(result.getPasswordHash().startsWith("$2"));
     }
 
     @Test
-    void testSave_EmailExists() {
-        when(usuarioRepository.existsByEmail("juan@example.com")).thenReturn(true);
-        assertThrows(IllegalArgumentException.class, () -> usuarioService.save(usuario));
+    void testSaveEmailExists() {
+        Usuario duplicateUsuario = new Usuario();
+        duplicateUsuario.setNombre("Pedro");
+        duplicateUsuario.setApellido("Lopez");
+        duplicateUsuario.setEmail("juan@example.com");
+        duplicateUsuario.setPasswordHash("password123");
+        duplicateUsuario.setActivo(true);
+        duplicateUsuario.setRol(rol);
+
+        assertThrows(BadRequestException.class, () -> usuarioService.save(duplicateUsuario));
     }
 
     @Test
     void testDeleteById() {
-        doNothing().when(usuarioRepository).deleteById(1);
-        usuarioService.deleteById(1);
-        verify(usuarioRepository, times(1)).deleteById(1);
+        usuarioService.deleteById(usuario.getIdUsuario());
+        assertThrows(Exception.class, () -> usuarioService.findById(usuario.getIdUsuario()));
     }
 }

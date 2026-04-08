@@ -1,8 +1,8 @@
 package com.botica.botica.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +16,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("API Botica")
                         .version("1.0")
-                        .description("Documentación de la API REST para la gestión de la farmacia")
+                        .description("Documentacion de la API REST para la gestion de la farmacia")
                         .contact(new Contact()
                                 .name("Equipo Botica")
                                 .url("http://localhost:8080")

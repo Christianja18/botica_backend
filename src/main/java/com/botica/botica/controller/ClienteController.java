@@ -1,14 +1,18 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.ClienteDTO;
 import com.botica.botica.entity.Cliente;
+import com.botica.botica.mapper.ClienteMapper;
 import com.botica.botica.service.ClienteService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -17,26 +21,36 @@ import java.util.List;
 public class ClienteController {
 
     private final ClienteService clienteService;
+    private final ClienteMapper clienteMapper;
 
     @GetMapping
-    public ResponseEntity<List<Cliente>> getAllClientes() {
-        return ResponseEntity.ok(clienteService.findAll());
+    public ResponseEntity<List<ClienteDTO>> getAllClientes() {
+        List<Cliente> clientes = clienteService.findAll();
+        List<ClienteDTO> dtos = clientes.stream()
+                .map(clienteMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> getClienteById(@PathVariable Integer id) {
-        return ResponseEntity.ok(clienteService.findById(id));
+    public ResponseEntity<ClienteDTO> getClienteById(@PathVariable Integer id) {
+        Cliente cliente = clienteService.findById(id);
+        return ResponseEntity.ok(clienteMapper.toDTO(cliente));
     }
 
     @PostMapping
-    public ResponseEntity<Cliente> createCliente(@Valid @RequestBody Cliente cliente) {
-        return ResponseEntity.ok(clienteService.save(cliente));
+    public ResponseEntity<ClienteDTO> createCliente(@Valid @RequestBody ClienteDTO clienteDTO) {
+        Cliente cliente = clienteMapper.toEntity(clienteDTO);
+        Cliente saved = clienteService.save(cliente);
+        return ResponseEntity.status(HttpStatus.CREATED).body(clienteMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> updateCliente(@PathVariable Integer id, @Valid @RequestBody Cliente cliente) {
-        cliente.setIdCliente(id);
-        return ResponseEntity.ok(clienteService.save(cliente));
+    public ResponseEntity<ClienteDTO> updateCliente(@PathVariable Integer id, @Valid @RequestBody ClienteDTO clienteDTO) {
+        Cliente existing = clienteService.findById(id);
+        Cliente updated = clienteMapper.updateEntity(clienteDTO, existing);
+        Cliente saved = clienteService.save(updated);
+        return ResponseEntity.ok(clienteMapper.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")

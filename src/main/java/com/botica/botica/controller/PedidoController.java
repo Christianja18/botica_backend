@@ -1,13 +1,18 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.PedidoDTO;
 import com.botica.botica.entity.Pedido;
+import com.botica.botica.mapper.PedidoMapper;
 import com.botica.botica.service.PedidoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pedidos")
@@ -16,32 +21,38 @@ import java.util.List;
 public class PedidoController {
 
     private final PedidoService pedidoService;
+    private final PedidoMapper pedidoMapper;
 
     @GetMapping
-    public ResponseEntity<List<Pedido>> getAllPedidos() {
-        return ResponseEntity.ok(pedidoService.findAll());
+    public ResponseEntity<List<PedidoDTO>> getAllPedidos() {
+        return ResponseEntity.ok(pedidoService.findAll().stream()
+                .map(pedidoMapper::toDTO)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Pedido> getPedidoById(@PathVariable Integer id) {
-        Pedido pedido = pedidoService.findById(id);
-        return ResponseEntity.ok(pedido);
+    public ResponseEntity<PedidoDTO> getPedidoById(@PathVariable Integer id) {
+        return ResponseEntity.ok(pedidoMapper.toDTO(pedidoService.findById(id)));
     }
 
     @GetMapping("/estado/{estado}")
-    public ResponseEntity<List<Pedido>> getPedidosByEstado(@PathVariable Pedido.EstadoPedido estado) {
-        return ResponseEntity.ok(pedidoService.findByEstado(estado));
+    public ResponseEntity<List<PedidoDTO>> getPedidosByEstado(@PathVariable Pedido.EstadoPedido estado) {
+        return ResponseEntity.ok(pedidoService.findByEstado(estado).stream()
+                .map(pedidoMapper::toDTO)
+                .collect(Collectors.toList()));
     }
 
     @PostMapping
-    public ResponseEntity<Pedido> createPedido(@RequestBody Pedido pedido) {
-        return ResponseEntity.ok(pedidoService.save(pedido));
+    public ResponseEntity<PedidoDTO> createPedido(@Valid @RequestBody PedidoDTO pedidoDTO) {
+        Pedido saved = pedidoService.saveFromDto(pedidoDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Pedido> updatePedido(@PathVariable Integer id, @RequestBody Pedido pedido) {
-        pedido.setIdPedido(id);
-        return ResponseEntity.ok(pedidoService.save(pedido));
+    public ResponseEntity<PedidoDTO> updatePedido(@PathVariable Integer id, @Valid @RequestBody PedidoDTO pedidoDTO) {
+        pedidoDTO.setIdPedido(id);
+        Pedido saved = pedidoService.saveFromDto(pedidoDTO);
+        return ResponseEntity.ok(pedidoMapper.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")

@@ -1,63 +1,66 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.ReporteDTO;
 import com.botica.botica.entity.Reporte;
-import com.botica.botica.entity.Usuario;
+import com.botica.botica.mapper.ReporteMapper;
 import com.botica.botica.service.ReporteService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/reportes")
-@Tag(name = "Reportes", description = "Operaciones de reportes y estadísticas")
+@Tag(name = "Reportes", description = "Operaciones de reportes y estadisticas")
 @RequiredArgsConstructor
 public class ReporteController {
 
     private final ReporteService reporteService;
+    private final ReporteMapper reporteMapper;
 
     @GetMapping
-    public ResponseEntity<List<Reporte>> getAllReportes() {
-        return ResponseEntity.ok(reporteService.findAll());
+    public ResponseEntity<List<ReporteDTO>> getAllReportes() {
+        return ResponseEntity.ok(reporteService.findAll().stream()
+                .map(reporteMapper::toDTO)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Reporte> getReporteById(@PathVariable Integer id) {
-        Reporte reporte = reporteService.findById(id);
-        return ResponseEntity.ok(reporte);
+    public ResponseEntity<ReporteDTO> getReporteById(@PathVariable Integer id) {
+        return ResponseEntity.ok(reporteMapper.toDTO(reporteService.findById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<Reporte> createReporte(@RequestBody Reporte reporte) {
-        return ResponseEntity.ok(reporteService.save(reporte));
+    public ResponseEntity<ReporteDTO> createReporte(@Valid @RequestBody ReporteDTO reporteDTO) {
+        Reporte reporte = reporteMapper.toEntity(reporteDTO);
+        Reporte saved = reporteService.saveFromDto(reporte, reporteDTO.getGeneradoPor());
+        return ResponseEntity.status(HttpStatus.CREATED).body(reporteMapper.toDTO(saved));
     }
 
     @PostMapping("/generar/ventas")
-    public ResponseEntity<Reporte> generarReporteVentas(
-            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") java.time.LocalDate fechaInicio,
-            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") java.time.LocalDate fechaFin,
+    public ResponseEntity<ReporteDTO> generarReporteVentas(
+            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate fechaInicio,
+            @RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate fechaFin,
             @RequestParam Integer idUsuario) {
-        // Placeholder: Obtener usuario; en prod, usar autenticación
-        Usuario usuario = new Usuario(); // Simular
-        usuario.setIdUsuario(idUsuario);
         Reporte reporte = reporteService.generarReporteVentas(
                 fechaInicio.atStartOfDay(),
                 fechaFin.atTime(23, 59, 59),
-                usuario);
-        return ResponseEntity.ok(reporte);
+                idUsuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(reporteMapper.toDTO(reporte));
     }
 
     @PostMapping("/generar/inventario")
-    public ResponseEntity<Reporte> generarReporteInventario(@RequestParam Integer idUsuario) {
-        Usuario usuario = new Usuario();
-        usuario.setIdUsuario(idUsuario);
-        Reporte reporte = reporteService.generarReporteInventario(usuario);
-        return ResponseEntity.ok(reporte);
+    public ResponseEntity<ReporteDTO> generarReporteInventario(@RequestParam Integer idUsuario) {
+        Reporte reporte = reporteService.generarReporteInventario(idUsuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(reporteMapper.toDTO(reporte));
     }
 
     @DeleteMapping("/{id}")
@@ -69,6 +72,11 @@ public class ReporteController {
     @GetMapping("/ventas-por-mes/{year}")
     public ResponseEntity<List<Map<String, Object>>> getVentasPorMes(@PathVariable int year) {
         return ResponseEntity.ok(reporteService.getVentasPorMes(year));
+    }
+
+    @GetMapping("/ganancias-por-mes/{year}")
+    public ResponseEntity<List<Map<String, Object>>> getGananciasPorMes(@PathVariable int year) {
+        return ResponseEntity.ok(reporteService.getGananciasPorMes(year));
     }
 
     @GetMapping("/inventario-bajo")
