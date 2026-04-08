@@ -58,7 +58,6 @@ public class PedidoMapper {
         }
         Pedido pedido = new Pedido();
         pedido.setIdPedido(dto.getIdPedido());
-        pedido.setTotal(dto.getTotal());
 
         if (dto.getEstado() != null) {
             pedido.setEstado(Pedido.EstadoPedido.valueOf(dto.getEstado()));
@@ -75,7 +74,6 @@ public class PedidoMapper {
         if (dto == null) {
             return pedido;
         }
-        pedido.setTotal(dto.getTotal());
 
         if (dto.getEstado() != null) {
             pedido.setEstado(Pedido.EstadoPedido.valueOf(dto.getEstado()));

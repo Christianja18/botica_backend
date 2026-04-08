@@ -42,7 +42,11 @@ public class ClienteMapper {
         if (dto == null) {
             return cliente;
         }
-        modelMapper.map(dto, cliente);
+        cliente.setNombre(dto.getNombre());
+        cliente.setApellido(dto.getApellido());
+        cliente.setDni(dto.getDni());
+        cliente.setTelefono(dto.getTelefono());
+        cliente.setEmail(dto.getEmail());
         return cliente;
     }
 }

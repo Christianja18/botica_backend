@@ -42,7 +42,11 @@ public class ProveedorMapper {
         if (dto == null) {
             return proveedor;
         }
-        modelMapper.map(dto, proveedor);
+        proveedor.setNombre(dto.getNombre());
+        proveedor.setRuc(dto.getRuc());
+        proveedor.setTelefono(dto.getTelefono());
+        proveedor.setEmail(dto.getEmail());
+        proveedor.setDireccion(dto.getDireccion());
         return proveedor;
     }
 }

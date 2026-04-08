@@ -4,6 +4,7 @@ import com.botica.botica.dto.ProveedorDTO;
 import com.botica.botica.entity.Proveedor;
 import com.botica.botica.mapper.ProveedorMapper;
 import com.botica.botica.service.ProveedorService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ProveedorController {
     private final ProveedorMapper proveedorMapper;
 
     @GetMapping
+    @Operation(summary = "Obtener todos los proveedores", description = "Retorna una lista de todos los proveedores registrados")
     public ResponseEntity<List<ProveedorDTO>> getAllProveedores() {
         List<Proveedor> proveedores = proveedorService.findAll();
         List<ProveedorDTO> dtos = proveedores.stream()
@@ -33,12 +35,14 @@ public class ProveedorController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Obtener proveedor por ID", description = "Retorna los detalles de un proveedor especifico")
     public ResponseEntity<ProveedorDTO> getProveedorById(@PathVariable Integer id) {
         Proveedor proveedor = proveedorService.findById(id);
         return ResponseEntity.ok(proveedorMapper.toDTO(proveedor));
     }
 
     @PostMapping
+    @Operation(summary = "Crear nuevo proveedor", description = "Crea un nuevo proveedor en el sistema")
     public ResponseEntity<ProveedorDTO> createProveedor(@Valid @RequestBody ProveedorDTO proveedorDTO) {
         Proveedor proveedor = proveedorMapper.toEntity(proveedorDTO);
         Proveedor saved = proveedorService.save(proveedor);
@@ -46,6 +50,7 @@ public class ProveedorController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Actualizar proveedor", description = "Actualiza los datos de un proveedor existente")
     public ResponseEntity<ProveedorDTO> updateProveedor(@PathVariable Integer id, @Valid @RequestBody ProveedorDTO proveedorDTO) {
         Proveedor existing = proveedorService.findById(id);
         Proveedor updated = proveedorMapper.updateEntity(proveedorDTO, existing);
@@ -54,6 +59,7 @@ public class ProveedorController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar proveedor", description = "Elimina un proveedor registrado por su identificador")
     public ResponseEntity<Void> deleteProveedor(@PathVariable Integer id) {
         proveedorService.deleteById(id);
         return ResponseEntity.noContent().build();

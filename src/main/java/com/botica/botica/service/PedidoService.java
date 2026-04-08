@@ -71,8 +71,8 @@ public class PedidoService {
             }
             pedido.setDetalles(detalles);
             pedido.setTotal(calculateTotal(detalles));
-        } else if (dto.getTotal() != null) {
-            pedido.setTotal(dto.getTotal());
+        } else if (pedido.getIdPedido() == null) {
+            pedido.setTotal(BigDecimal.ZERO);
         }
 
         return pedidoRepository.save(pedido);

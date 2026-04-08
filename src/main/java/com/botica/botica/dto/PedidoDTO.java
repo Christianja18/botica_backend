@@ -24,7 +24,6 @@ public class PedidoDTO {
 
     private String fechaPedido;
 
-    @NotNull(message = "El total es obligatorio")
     @DecimalMin(value = "0.00", message = "El total debe ser mayor o igual a 0")
     @Digits(integer = 8, fraction = 2, message = "El total debe tener máximo 8 dígitos enteros y 2 decimales")
     @Builder.Default
