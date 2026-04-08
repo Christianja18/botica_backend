@@ -4,6 +4,8 @@ import com.botica.botica.entity.Cliente;
 import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClienteService.class);
 
     private final ClienteRepository clienteRepository;
 
@@ -24,7 +28,17 @@ public class ClienteService {
     }
 
     public Cliente save(Cliente cliente) {
-        return clienteRepository.save(cliente);
+        logger.info("Guardando cliente: nombre={}, apellido={}, dni={}, email={}",
+                    cliente.getNombre(), cliente.getApellido(), cliente.getDni(), cliente.getEmail());
+        try {
+            Cliente saved = clienteRepository.save(cliente);
+            logger.info("Cliente guardado exitosamente con id: {}", saved.getIdCliente());
+            return saved;
+        } catch (Exception e) {
+            logger.error("Error al guardar cliente: nombre={}, apellido={}, dni={}, error={}",
+                        cliente.getNombre(), cliente.getApellido(), cliente.getDni(), e.getMessage());
+            throw e;
+        }
     }
 
     public void deleteById(Integer id) {
