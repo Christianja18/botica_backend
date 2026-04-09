@@ -101,6 +101,7 @@ class ProductoIntegrationTest {
 
         testProducto = new Producto();
         testProducto.setNombre("Paracetamol");
+        testProducto.setCodigoBarras("7750000000100");
         testProducto.setDescripcion("Analgesico y antipiretico");
         testProducto.setPrecioVenta(BigDecimal.valueOf(5.00));
         testProducto.setPrecioCompra(BigDecimal.valueOf(3.50));
@@ -117,6 +118,7 @@ class ProductoIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].nombre").value("Paracetamol"))
+                .andExpect(jsonPath("$[0].codigoBarras").value("7750000000100"))
                 .andExpect(jsonPath("$[0].precioVenta").value(5.00))
                 .andExpect(jsonPath("$[0].precioCompra").value(3.50));
     }
@@ -127,6 +129,7 @@ class ProductoIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Paracetamol"))
+                .andExpect(jsonPath("$.codigoBarras").value("7750000000100"))
                 .andExpect(jsonPath("$.descripcion").value("Analgesico y antipiretico"));
     }
 
@@ -140,9 +143,19 @@ class ProductoIntegrationTest {
     }
 
     @Test
+    void testBuscarProductoPorCodigoBarras() throws Exception {
+        mockMvc.perform(get("/api/productos/codigo-barras/" + testProducto.getCodigoBarras())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idProducto").value(testProducto.getIdProducto()))
+                .andExpect(jsonPath("$.codigoBarras").value("7750000000100"));
+    }
+
+    @Test
     void testCrearProducto() throws Exception {
         String nuevoProductoJson = "{"
                 + "\"nombre\":\"Ibuprofeno\","
+                + "\"codigoBarras\":\"7750000000101\","
                 + "\"descripcion\":\"Antiinflamatorio\","
                 + "\"precioVenta\":8.00,"
                 + "\"precioCompra\":5.50,"
@@ -156,6 +169,7 @@ class ProductoIntegrationTest {
                         .content(nuevoProductoJson))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nombre").value("Ibuprofeno"))
+                .andExpect(jsonPath("$.codigoBarras").value("7750000000101"))
                 .andExpect(jsonPath("$.precioVenta").value(8.00));
     }
 
@@ -163,6 +177,7 @@ class ProductoIntegrationTest {
     void testActualizarProducto() throws Exception {
         String productoActualizadoJson = "{"
                 + "\"nombre\":\"Paracetamol 500mg\","
+                + "\"codigoBarras\":\"7750000000100\","
                 + "\"descripcion\":\"Analgesico mejorado\","
                 + "\"precioVenta\":6.00,"
                 + "\"precioCompra\":4.00,"
@@ -176,6 +191,7 @@ class ProductoIntegrationTest {
                         .content(productoActualizadoJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Paracetamol 500mg"))
+                .andExpect(jsonPath("$.codigoBarras").value("7750000000100"))
                 .andExpect(jsonPath("$.precioVenta").value(6.00));
     }
 }

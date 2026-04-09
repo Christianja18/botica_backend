@@ -9,7 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class ClienteDTOValidationTest {
@@ -23,7 +24,7 @@ class ClienteDTOValidationTest {
     void setUp() {
         validCliente = new ClienteDTO();
         validCliente.setNombre("Carlos");
-        validCliente.setApellido("García");
+        validCliente.setApellido("Garcia");
         validCliente.setDni("12345678");
         validCliente.setTelefono("987654321");
         validCliente.setEmail("carlos.garcia@mail.com");
@@ -32,71 +33,70 @@ class ClienteDTOValidationTest {
     @Test
     void validClientePasaValidacion() {
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertTrue(violations.isEmpty(), "Cliente válido no debería tener violaciones");
+        assertTrue(violations.isEmpty(), "Cliente valido no deberia tener violaciones");
     }
 
     @Test
     void clienteSinNombreNoesValido() {
         validCliente.setNombre("");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "Cliente sin nombre debería fallar");
+        assertFalse(violations.isEmpty(), "Cliente sin nombre deberia fallar");
     }
 
     @Test
     void clienteSinApellidoNoesValido() {
         validCliente.setApellido("");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "Cliente sin apellido debería fallar");
+        assertFalse(violations.isEmpty(), "Cliente sin apellido deberia fallar");
     }
 
     @Test
     void clienteConDniInvalidoNoesValido() {
-        validCliente.setDni("1234567"); // Solo 7 dígitos
+        validCliente.setDni("1234567");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "DNI con 7 dígitos debería fallar");
-        assertTrue(violations.stream()
-                .anyMatch(v -> v.getMessage().contains("exactamente 8 dígitos")));
+        assertFalse(violations.isEmpty(), "DNI con 7 digitos deberia fallar");
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("dni")));
     }
 
     @Test
     void clienteConDniNomericoNoesValido() {
         validCliente.setDni("1234567A");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "DNI con caracteres no numéricos debería fallar");
+        assertFalse(violations.isEmpty(), "DNI con caracteres no numericos deberia fallar");
     }
 
     @Test
     void clienteConDniTooLargNoesValido() {
         validCliente.setDni("123456789");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "DNI con 9 dígitos debería fallar");
+        assertFalse(violations.isEmpty(), "DNI con 9 digitos deberia fallar");
     }
 
     @Test
     void clienteConEmailInvalidoNoesValido() {
         validCliente.setEmail("email-sin-arroba");
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "Email sin @ debería fallar");
+        assertFalse(violations.isEmpty(), "Email sin @ deberia fallar");
     }
 
     @Test
     void clienteConNombreMuyLargoNoesValido() {
         validCliente.setNombre("A".repeat(101));
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertFalse(violations.isEmpty(), "Nombre mayor a 100 caracteres debería fallar");
+        assertFalse(violations.isEmpty(), "Nombre mayor a 100 caracteres deberia fallar");
     }
 
     @Test
     void clienteConDniNuloNoFalla() {
         validCliente.setDni(null);
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertTrue(violations.isEmpty(), "DNI nulo debería ser válido (opcional)");
+        assertTrue(violations.isEmpty(), "DNI nulo deberia ser valido");
     }
 
     @Test
     void clienteConEmailNuloNoFalla() {
         validCliente.setEmail(null);
         Set<ConstraintViolation<ClienteDTO>> violations = validator.validate(validCliente);
-        assertTrue(violations.isEmpty(), "Email nulo debería ser válido (opcional)");
+        assertTrue(violations.isEmpty(), "Email nulo deberia ser valido");
     }
 }

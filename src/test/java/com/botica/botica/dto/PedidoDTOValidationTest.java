@@ -10,7 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.math.BigDecimal;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class PedidoDTOValidationTest {
@@ -32,34 +33,34 @@ class PedidoDTOValidationTest {
     @Test
     void validPedidoPasaValidacion() {
         Set<ConstraintViolation<PedidoDTO>> violations = validator.validate(validPedido);
-        assertTrue(violations.isEmpty(), "Pedido válido no debería tener violaciones");
+        assertTrue(violations.isEmpty(), "Pedido valido no deberia tener violaciones");
     }
 
     @Test
     void pedidoSinUsuarioNoesValido() {
         validPedido.setIdUsuario(null);
         Set<ConstraintViolation<PedidoDTO>> violations = validator.validate(validPedido);
-        assertFalse(violations.isEmpty(), "Pedido sin usuario debería fallar");
+        assertFalse(violations.isEmpty(), "Pedido sin usuario deberia fallar");
     }
 
     @Test
-    void pedidoSinTotalNoesValido() {
+    void pedidoSinTotalSigueSiendoValido() {
         validPedido.setTotal(null);
         Set<ConstraintViolation<PedidoDTO>> violations = validator.validate(validPedido);
-        assertFalse(violations.isEmpty(), "Pedido sin total debería fallar");
+        assertTrue(violations.isEmpty(), "Pedido sin total debe ser valido porque el backend lo deriva");
     }
 
     @Test
     void pedidoConTotalNegativoNoesValido() {
         validPedido.setTotal(BigDecimal.valueOf(-1.00));
         Set<ConstraintViolation<PedidoDTO>> violations = validator.validate(validPedido);
-        assertFalse(violations.isEmpty(), "Pedido con total negativo debería fallar");
+        assertFalse(violations.isEmpty(), "Pedido con total negativo deberia fallar");
     }
 
     @Test
     void pedidoSinEstadoNoesValido() {
         validPedido.setEstado(null);
         Set<ConstraintViolation<PedidoDTO>> violations = validator.validate(validPedido);
-        assertFalse(violations.isEmpty(), "Pedido sin estado debería fallar");
+        assertFalse(violations.isEmpty(), "Pedido sin estado deberia fallar");
     }
 }

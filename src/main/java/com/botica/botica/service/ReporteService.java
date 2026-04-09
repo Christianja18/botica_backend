@@ -135,6 +135,35 @@ public class ReporteService {
                 .toList();
     }
 
+    public List<Map<String, Object>> getProductosPorVencer() {
+        String sql = "SELECT id_producto, codigo_barras, nombre, fecha_vencimiento, dias_para_vencer FROM vista_productos_por_vencer";
+        Query query = entityManager.createNativeQuery(sql);
+        List<Object[]> results = query.getResultList();
+        return results.stream()
+                .map(row -> Map.of(
+                        "id_producto", row[0],
+                        "codigo_barras", row[1],
+                        "nombre", row[2],
+                        "fecha_vencimiento", row[3],
+                        "dias_para_vencer", row[4]
+                ))
+                .toList();
+    }
+
+    public List<Map<String, Object>> getProductosVencidos() {
+        String sql = "SELECT id_producto, codigo_barras, nombre, fecha_vencimiento FROM vista_productos_vencidos";
+        Query query = entityManager.createNativeQuery(sql);
+        List<Object[]> results = query.getResultList();
+        return results.stream()
+                .map(row -> Map.of(
+                        "id_producto", row[0],
+                        "codigo_barras", row[1],
+                        "nombre", row[2],
+                        "fecha_vencimiento", row[3]
+                ))
+                .toList();
+    }
+
     private Usuario resolveUsuario(Integer usuarioId) {
         return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + usuarioId));

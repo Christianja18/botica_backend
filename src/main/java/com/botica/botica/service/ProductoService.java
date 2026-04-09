@@ -4,6 +4,7 @@ import com.botica.botica.dto.ProductoDTO;
 import com.botica.botica.entity.Categoria;
 import com.botica.botica.entity.Producto;
 import com.botica.botica.entity.Proveedor;
+import com.botica.botica.exception.BadRequestException;
 import com.botica.botica.exception.ProductoNotFoundException;
 import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.CategoriaRepository;
@@ -14,7 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Service
@@ -22,6 +26,10 @@ import java.util.List;
 public class ProductoService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductoService.class);
+    private static final DateTimeFormatter[] FECHA_VENCIMIENTO_FORMATTERS = new DateTimeFormatter[] {
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    };
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
@@ -40,6 +48,11 @@ public class ProductoService {
         return productoRepository.findByNombreContainingIgnoreCase(nombre);
     }
 
+    public Producto findByCodigoBarras(String codigoBarras) {
+        return productoRepository.findByCodigoBarras(codigoBarras)
+                .orElseThrow(() -> new ProductoNotFoundException("Producto no encontrado con codigo de barras: " + codigoBarras));
+    }
+
     public Producto saveFromDto(ProductoDTO dto) {
         Producto producto = dto.getIdProducto() != null
                 ? findById(dto.getIdProducto())
@@ -51,10 +64,12 @@ public class ProductoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con id: " + dto.getIdProveedor()));
 
         producto.setNombre(dto.getNombre());
+        producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioVenta(dto.getPrecioVenta());
         producto.setPrecioCompra(dto.getPrecioCompra());
         producto.setRequiereReceta(dto.getRequiereReceta());
+        producto.setFechaVencimiento(parseFechaVencimiento(dto.getFechaVencimiento()));
         producto.setCategoria(categoria);
         producto.setProveedor(proveedor);
 
@@ -69,6 +84,7 @@ public class ProductoService {
         logger.info("Guardando producto: nombre={}, precioVenta={}, precioCompra={}",
                     producto.getNombre(), producto.getPrecioVenta(), producto.getPrecioCompra());
         try {
+            validateCodigoBarras(producto);
             Producto saved = productoRepository.save(producto);
             logger.info("Producto guardado exitosamente con id: {}", saved.getIdProducto());
             return saved;
@@ -84,5 +100,29 @@ public class ProductoService {
             throw new ProductoNotFoundException("Producto no encontrado con id: " + id);
         }
         productoRepository.deleteById(id);
+    }
+
+    private void validateCodigoBarras(Producto producto) {
+        productoRepository.findByCodigoBarras(producto.getCodigoBarras())
+                .filter(existing -> producto.getIdProducto() == null || !existing.getIdProducto().equals(producto.getIdProducto()))
+                .ifPresent(existing -> {
+                    throw new BadRequestException("Codigo de barras ya existe: " + producto.getCodigoBarras());
+                });
+    }
+
+    private LocalDate parseFechaVencimiento(String fechaVencimiento) {
+        if (fechaVencimiento == null || fechaVencimiento.isBlank()) {
+            return null;
+        }
+
+        for (DateTimeFormatter formatter : FECHA_VENCIMIENTO_FORMATTERS) {
+            try {
+                return LocalDate.parse(fechaVencimiento, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Try next format.
+            }
+        }
+
+        throw new BadRequestException("Formato de fecha de vencimiento invalido. Use yyyy-MM-dd o dd/MM/yyyy");
     }
 }

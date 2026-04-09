@@ -30,7 +30,7 @@ public class Cliente {
     @Column(unique = true, length = 8)
     private String dni;
 
-    @Column(length = 15)
+    @Column(length = 9)
     private String telefono;
 
     @Column(length = 150)

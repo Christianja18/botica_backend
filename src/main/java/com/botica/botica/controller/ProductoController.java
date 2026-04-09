@@ -57,6 +57,13 @@ public class ProductoController {
         return searchProductos(nombre);
     }
 
+    @GetMapping("/codigo-barras/{codigoBarras}")
+    @Operation(summary = "Buscar producto por codigo de barras", description = "Retorna los detalles de un producto usando su codigo de barras para soporte de escaneo")
+    public ResponseEntity<ProductoDTO> getProductoByCodigoBarras(@PathVariable String codigoBarras) {
+        Producto producto = productoService.findByCodigoBarras(codigoBarras);
+        return ResponseEntity.ok(productoMapper.toDTO(producto));
+    }
+
     @PostMapping
     @Operation(summary = "Crear nuevo producto", description = "Crea un nuevo producto asociado a una categoria y un proveedor")
     public ResponseEntity<ProductoDTO> createProducto(@Valid @RequestBody ProductoDTO productoDTO) {

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,6 +25,9 @@ public class Producto {
 
     @Column(nullable = false, length = 200)
     private String nombre;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String codigoBarras;
 
     @Column
     private String descripcion;
@@ -44,6 +48,10 @@ public class Producto {
 
     @Column(nullable = false)
     private Boolean requiereReceta = false;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Column
+    private LocalDate fechaVencimiento;
 
     @JsonFormat(pattern = "dd/MM/yyyy")
     @Column(nullable = false)

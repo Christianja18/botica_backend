@@ -18,6 +18,10 @@ public class ProductoDTO {
     @Size(max = 200, message = "El nombre no puede exceder 200 caracteres")
     private String nombre;
 
+    @NotBlank(message = "El codigo de barras es obligatorio")
+    @Size(max = 50, message = "El codigo de barras no puede exceder 50 caracteres")
+    private String codigoBarras;
+
     @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
     private String descripcion;
 
@@ -39,6 +43,8 @@ public class ProductoDTO {
 
     @NotNull(message = "El campo requiere receta es obligatorio")
     private Boolean requiereReceta = false;
+
+    private String fechaVencimiento;
 
     private String fechaCreacion;
 }

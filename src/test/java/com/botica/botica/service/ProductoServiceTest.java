@@ -15,7 +15,9 @@ import org.springframework.test.context.TestPropertySource;
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -44,15 +46,13 @@ class ProductoServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Limpiar la base de datos
         productoRepository.deleteAll();
         categoriaRepository.deleteAll();
         proveedorRepository.deleteAll();
 
-        // Crear datos de prueba
         categoria = new Categoria();
         categoria.setNombre("Medicamentos");
-        categoria.setDescripcion("Productos farmacéuticos");
+        categoria.setDescripcion("Productos farmaceuticos");
         categoria = categoriaRepository.save(categoria);
 
         proveedor = new Proveedor();
@@ -60,12 +60,13 @@ class ProductoServiceTest {
         proveedor.setRuc("12345678901");
         proveedor.setTelefono("987654321");
         proveedor.setEmail("proveedor@example.com");
-        proveedor.setDireccion("Dirección");
+        proveedor.setDireccion("Direccion");
         proveedor = proveedorRepository.save(proveedor);
 
         producto = new Producto();
         producto.setNombre("Paracetamol");
-        producto.setDescripcion("Analgésico");
+        producto.setCodigoBarras("7750000000001");
+        producto.setDescripcion("Analgesico");
         producto.setPrecioVenta(BigDecimal.valueOf(5.00));
         producto.setPrecioCompra(BigDecimal.valueOf(3.50));
         producto.setCategoria(categoria);
@@ -95,9 +96,16 @@ class ProductoServiceTest {
     }
 
     @Test
+    void testFindByCodigoBarras() {
+        Producto result = productoService.findByCodigoBarras("7750000000001");
+        assertEquals(producto.getIdProducto(), result.getIdProducto());
+    }
+
+    @Test
     void testSave() {
         Producto newProducto = new Producto();
         newProducto.setNombre("Ibuprofeno");
+        newProducto.setCodigoBarras("7750000000002");
         newProducto.setDescripcion("Antiinflamatorio");
         newProducto.setPrecioVenta(BigDecimal.valueOf(8.00));
         newProducto.setPrecioCompra(BigDecimal.valueOf(5.50));
@@ -108,6 +116,7 @@ class ProductoServiceTest {
         Producto result = productoService.save(newProducto);
         assertNotNull(result);
         assertEquals("Ibuprofeno", result.getNombre());
+        assertEquals("7750000000002", result.getCodigoBarras());
     }
 
     @Test

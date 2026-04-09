@@ -27,7 +27,7 @@ public class Proveedor {
     @Column(unique = true, length = 11)
     private String ruc;
 
-    @Column(length = 15)
+    @Column(length = 9)
     private String telefono;
 
     @Column(length = 150)

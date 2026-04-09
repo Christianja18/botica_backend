@@ -93,4 +93,16 @@ public class ReporteController {
     public ResponseEntity<List<Map<String, Object>>> getInventarioBajo() {
         return ResponseEntity.ok(reporteService.getInventarioBajo());
     }
+
+    @GetMapping("/productos-por-vencer")
+    @Operation(summary = "Obtener productos por vencer", description = "Retorna una lista de productos cuya fecha de vencimiento esta dentro de los proximos 30 dias")
+    public ResponseEntity<List<Map<String, Object>>> getProductosPorVencer() {
+        return ResponseEntity.ok(reporteService.getProductosPorVencer());
+    }
+
+    @GetMapping("/productos-vencidos")
+    @Operation(summary = "Obtener productos vencidos", description = "Retorna una lista de productos cuya fecha de vencimiento ya paso")
+    public ResponseEntity<List<Map<String, Object>>> getProductosVencidos() {
+        return ResponseEntity.ok(reporteService.getProductosVencidos());
+    }
 }

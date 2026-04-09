@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -15,6 +15,7 @@ public class ProductoMapper {
 
     private final ModelMapper modelMapper;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter dateOnlyFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
 
     public ProductoDTO toDTO(Producto producto) {
         if (producto == null) {
@@ -23,6 +24,9 @@ public class ProductoMapper {
         ProductoDTO dto = modelMapper.map(producto, ProductoDTO.class);
         if (producto.getFechaCreacion() != null) {
             dto.setFechaCreacion(producto.getFechaCreacion().format(dateFormatter));
+        }
+        if (producto.getFechaVencimiento() != null) {
+            dto.setFechaVencimiento(producto.getFechaVencimiento().format(dateOnlyFormatter));
         }
         // Mapear IDs de relaciones
         if (producto.getCategoria() != null) {
@@ -41,6 +45,7 @@ public class ProductoMapper {
         Producto producto = new Producto();
         producto.setIdProducto(dto.getIdProducto());
         producto.setNombre(dto.getNombre());
+        producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioVenta(dto.getPrecioVenta());
         producto.setPrecioCompra(dto.getPrecioCompra());
@@ -56,6 +61,7 @@ public class ProductoMapper {
             return producto;
         }
         producto.setNombre(dto.getNombre());
+        producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setDescripcion(dto.getDescripcion());
         producto.setPrecioVenta(dto.getPrecioVenta());
         producto.setPrecioCompra(dto.getPrecioCompra());
