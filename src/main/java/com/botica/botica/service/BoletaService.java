@@ -50,7 +50,8 @@ public class BoletaService {
         boleta.setDatosEmpleado(resolveDatosEmpleado(dto, pedido));
         boleta.setImpresa(Boolean.TRUE.equals(dto.getImpresa()));
 
-        return boletaRepository.save(boleta);
+        Boleta saved = boletaRepository.save(boleta);
+        return findById(saved.getIdBoleta());
     }
 
     private String resolveDatosCliente(BoletaDTO dto, Pedido pedido) {

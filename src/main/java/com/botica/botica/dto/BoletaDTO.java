@@ -27,6 +27,8 @@ public class BoletaDTO {
     @NotNull(message = "El pedido es obligatorio")
     private Integer idPedido;
 
+    private BoletaPedidoDTO pedido;
+
     private String fechaEmision;
 
     @DecimalMin(value = "0.00", message = "El total no puede ser negativo")
