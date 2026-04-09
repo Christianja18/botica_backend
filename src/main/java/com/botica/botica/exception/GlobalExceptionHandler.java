@@ -80,6 +80,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException ex) {
+        logger.warn("Unauthorized: {}", ex.getMessage());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        body.put("message", ex.getMessage());
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
         logger.error("Internal server error: {}", ex.getMessage(), ex);

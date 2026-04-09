@@ -37,6 +37,9 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     }
 
     private RateLimiter selectRateLimiter(String path, String method) {
+        if ("/api/auth/login".equals(path)) {
+            return rateLimiterRegistry.rateLimiter("login-limiter");
+        }
         if ("DELETE".equalsIgnoreCase(method) || path.contains("/admin")) {
             return rateLimiterRegistry.rateLimiter("sensitive-limiter");
         }
