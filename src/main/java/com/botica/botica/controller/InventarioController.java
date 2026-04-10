@@ -1,6 +1,7 @@
 package com.botica.botica.controller;
 
 import com.botica.botica.dto.InventarioDTO;
+import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.entity.Inventario;
 import com.botica.botica.mapper.InventarioMapper;
 import com.botica.botica.service.InventarioService;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,20 @@ public class InventarioController {
         return ResponseEntity.ok(inventarioService.findAll().stream()
                 .map(inventarioMapper::toDTO)
                 .collect(Collectors.toList()));
+    }
+
+    @GetMapping("/paginado")
+    @Operation(summary = "Obtener inventario paginado", description = "Retorna una lista paginada de registros de inventario")
+    public ResponseEntity<PageResponseDTO<InventarioDTO>> getInventarioPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "idInventario") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageResponseDTO<InventarioDTO> response = PageResponseDTO.from(
+                inventarioService.findAll(PageRequest.of(page, size, sort)).map(inventarioMapper::toDTO)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

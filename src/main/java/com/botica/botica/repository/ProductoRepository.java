@@ -2,6 +2,8 @@ package com.botica.botica.repository;
 
 import com.botica.botica.entity.Producto;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +16,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
     @Override
     @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"categoria", "proveedor"})
+    Page<Producto> findAll(Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"categoria", "proveedor"})

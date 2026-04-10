@@ -9,6 +9,8 @@ import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.BoletaRepository;
 import com.botica.botica.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +26,10 @@ public class BoletaService {
 
     public List<Boleta> findAll() {
         return boletaRepository.findAll();
+    }
+
+    public Page<Boleta> findAll(Pageable pageable) {
+        return boletaRepository.findAll(pageable);
     }
 
     public Boleta findById(Integer id) {

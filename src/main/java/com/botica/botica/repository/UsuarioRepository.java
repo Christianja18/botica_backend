@@ -2,6 +2,8 @@ package com.botica.botica.repository;
 
 import com.botica.botica.entity.Usuario;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +16,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     @Override
     @EntityGraph(attributePaths = {"rol"})
     List<Usuario> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"rol"})
+    Page<Usuario> findAll(Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"rol"})

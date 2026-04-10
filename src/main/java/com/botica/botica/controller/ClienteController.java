@@ -1,6 +1,7 @@
 package com.botica.botica.controller;
 
 import com.botica.botica.dto.ClienteDTO;
+import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.entity.Cliente;
 import com.botica.botica.mapper.ClienteMapper;
 import com.botica.botica.service.ClienteService;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +35,20 @@ public class ClienteController {
                 .map(clienteMapper::toDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/paginado")
+    @Operation(summary = "Obtener clientes paginados", description = "Retorna una lista paginada de clientes registrados")
+    public ResponseEntity<PageResponseDTO<ClienteDTO>> getClientesPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "idCliente") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageResponseDTO<ClienteDTO> response = PageResponseDTO.from(
+                clienteService.findAll(PageRequest.of(page, size, sort)).map(clienteMapper::toDTO)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

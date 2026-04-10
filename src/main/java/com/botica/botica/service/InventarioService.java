@@ -7,6 +7,8 @@ import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.InventarioRepository;
 import com.botica.botica.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,6 +23,10 @@ public class InventarioService {
 
     public List<Inventario> findAll() {
         return inventarioRepository.findAll();
+    }
+
+    public Page<Inventario> findAll(Pageable pageable) {
+        return inventarioRepository.findAll(pageable);
     }
 
     public Inventario findById(Integer id) {

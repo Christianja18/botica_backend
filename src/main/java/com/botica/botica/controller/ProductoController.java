@@ -1,5 +1,6 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.dto.ProductoDTO;
 import com.botica.botica.entity.Producto;
 import com.botica.botica.mapper.ProductoMapper;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +35,20 @@ public class ProductoController {
                 .map(productoMapper::toDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/paginado")
+    @Operation(summary = "Obtener productos paginados", description = "Retorna una lista paginada de productos registrados")
+    public ResponseEntity<PageResponseDTO<ProductoDTO>> getProductosPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "idProducto") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageResponseDTO<ProductoDTO> response = PageResponseDTO.from(
+                productoService.findAll(PageRequest.of(page, size, sort)).map(productoMapper::toDTO)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

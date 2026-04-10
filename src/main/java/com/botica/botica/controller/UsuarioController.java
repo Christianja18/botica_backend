@@ -1,5 +1,6 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.dto.UsuarioDTO;
 import com.botica.botica.entity.Usuario;
 import com.botica.botica.mapper.UsuarioMapper;
@@ -10,6 +11,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +39,20 @@ public class UsuarioController {
                 .map(usuarioMapper::toDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/paginado")
+    @Operation(summary = "Obtener usuarios paginados", description = "Retorna una lista paginada de usuarios registrados")
+    public ResponseEntity<PageResponseDTO<UsuarioDTO>> getUsuariosPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "idUsuario") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageResponseDTO<UsuarioDTO> response = PageResponseDTO.from(
+                usuarioService.findAll(PageRequest.of(page, size, sort)).map(usuarioMapper::toDTO)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

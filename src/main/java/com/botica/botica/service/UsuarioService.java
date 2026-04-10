@@ -11,6 +11,8 @@ import com.botica.botica.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,10 @@ public class UsuarioService {
 
     public List<Usuario> findAll() {
         return usuarioRepository.findAll();
+    }
+
+    public Page<Usuario> findAll(Pageable pageable) {
+        return usuarioRepository.findAll(pageable);
     }
 
     public Usuario findById(Integer id) {

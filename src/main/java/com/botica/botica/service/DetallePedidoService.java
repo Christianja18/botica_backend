@@ -9,6 +9,8 @@ import com.botica.botica.repository.DetallePedidoRepository;
 import com.botica.botica.repository.PedidoRepository;
 import com.botica.botica.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +26,10 @@ public class DetallePedidoService {
 
     public List<DetallePedido> findAll() {
         return detallePedidoRepository.findAll();
+    }
+
+    public Page<DetallePedido> findAll(Pageable pageable) {
+        return detallePedidoRepository.findAll(pageable);
     }
 
     public DetallePedido findById(Integer id) {

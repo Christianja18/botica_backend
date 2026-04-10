@@ -2,6 +2,8 @@ package com.botica.botica.repository;
 
 import com.botica.botica.entity.DetallePedido;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,6 +13,10 @@ public interface DetallePedidoRepository extends JpaRepository<DetallePedido, In
     @Override
     @EntityGraph(attributePaths = {"pedido", "pedido.cliente", "pedido.usuario", "producto"})
     List<DetallePedido> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"pedido", "pedido.cliente", "pedido.usuario", "producto"})
+    Page<DetallePedido> findAll(Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"pedido", "pedido.cliente", "pedido.usuario", "producto"})

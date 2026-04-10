@@ -4,6 +4,8 @@ import com.botica.botica.entity.Categoria;
 import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.CategoriaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +18,10 @@ public class CategoriaService {
 
     public List<Categoria> findAll() {
         return categoriaRepository.findAll();
+    }
+
+    public Page<Categoria> findAll(Pageable pageable) {
+        return categoriaRepository.findAll(pageable);
     }
 
     public Categoria findById(Integer id) {
