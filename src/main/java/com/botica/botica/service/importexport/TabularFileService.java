@@ -13,10 +13,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -63,11 +63,7 @@ public class TabularFileService {
                      .setHeader(headers.toArray(String[]::new))
                      .build())) {
             for (Map<String, String> row : rows) {
-                List<String> values = new ArrayList<>(headers.size());
-                for (String header : headers) {
-                    values.add(sanitizeForSpreadsheet(row.get(header)));
-                }
-                printer.printRecord(values);
+                printer.printRecord(buildSpreadsheetRow(headers, row));
             }
             printer.flush();
         }
@@ -86,9 +82,9 @@ public class TabularFileService {
             for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
                 Row dataRow = sheet.createRow(rowIndex + 1);
                 Map<String, String> row = rows.get(rowIndex);
-                for (int columnIndex = 0; columnIndex < headers.size(); columnIndex++) {
-                    String header = headers.get(columnIndex);
-                    dataRow.createCell(columnIndex).setCellValue(sanitizeForSpreadsheet(row.get(header)));
+                List<String> values = buildSpreadsheetRow(headers, row);
+                for (int columnIndex = 0; columnIndex < values.size(); columnIndex++) {
+                    dataRow.createCell(columnIndex).setCellValue(values.get(columnIndex));
                 }
             }
 
@@ -102,7 +98,8 @@ public class TabularFileService {
     }
 
     private List<Map<String, String>> readCsv(MultipartFile file) throws IOException {
-        try (Reader reader = new InputStreamReader(new ByteArrayInputStream(file.getBytes()), StandardCharsets.UTF_8);
+        try (InputStream inputStream = file.getInputStream();
+             Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              CSVParser parser = CSVFormat.DEFAULT.builder()
                      .setHeader()
                      .setSkipHeaderRecord(true)
@@ -110,24 +107,16 @@ public class TabularFileService {
                      .setTrim(true)
                      .build()
                      .parse(reader)) {
-            List<String> headers = parser.getHeaderNames().stream()
-                    .map(this::normalizeHeader)
-                    .toList();
-
-            List<Map<String, String>> rows = new ArrayList<>();
-            for (CSVRecord record : parser) {
-                Map<String, String> row = new LinkedHashMap<>();
-                boolean hasContent = false;
-                for (int index = 0; index < headers.size(); index++) {
-                    String value = normalizeImportedValue(record.get(index));
-                    row.put(headers.get(index), value);
-                    hasContent = hasContent || !value.isBlank();
-                }
-                if (hasContent) {
-                    rows.add(row);
-                }
-            }
-            return rows;
+            List<String> headers = normalizeHeaders(parser.getHeaderNames());
+            return buildRows(headers, parser.stream()
+                    .map(record -> {
+                        List<String> values = new ArrayList<>(headers.size());
+                        for (int index = 0; index < headers.size(); index++) {
+                            values.add(record.get(index));
+                        }
+                        return values;
+                    })
+                    .toList());
         }
     }
 
@@ -151,28 +140,54 @@ public class TabularFileService {
                 headers.add(normalizeHeader(formatter.formatCellValue(cell)));
             }
 
-            List<Map<String, String>> rows = new ArrayList<>();
+            List<List<String>> rawRows = new ArrayList<>();
             for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row currentRow = sheet.getRow(rowIndex);
                 if (currentRow == null) {
                     continue;
                 }
 
-                Map<String, String> row = new LinkedHashMap<>();
-                boolean hasContent = false;
+                List<String> values = new ArrayList<>(headers.size());
                 for (int columnIndex = 0; columnIndex < headers.size(); columnIndex++) {
                     Cell cell = currentRow.getCell(columnIndex, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    String value = normalizeImportedValue(formatter.formatCellValue(cell));
-                    row.put(headers.get(columnIndex), value);
-                    hasContent = hasContent || !value.isBlank();
+                    values.add(formatter.formatCellValue(cell));
                 }
-                if (hasContent) {
-                    rows.add(row);
-                }
+                rawRows.add(values);
             }
 
-            return rows;
+            return buildRows(headers, rawRows);
         }
+    }
+
+    private List<String> buildSpreadsheetRow(List<String> headers, Map<String, String> row) {
+        List<String> values = new ArrayList<>(headers.size());
+        for (String header : headers) {
+            values.add(sanitizeForSpreadsheet(row.get(header)));
+        }
+        return values;
+    }
+
+    private List<String> normalizeHeaders(List<String> headers) {
+        return headers.stream()
+                .map(this::normalizeHeader)
+                .toList();
+    }
+
+    private List<Map<String, String>> buildRows(List<String> headers, List<List<String>> rawRows) {
+        List<Map<String, String>> rows = new ArrayList<>();
+        for (List<String> rawRow : rawRows) {
+            Map<String, String> row = new LinkedHashMap<>();
+            boolean hasContent = false;
+            for (int index = 0; index < headers.size(); index++) {
+                String value = normalizeImportedValue(rawRow.get(index));
+                row.put(headers.get(index), value);
+                hasContent = hasContent || !value.isBlank();
+            }
+            if (hasContent) {
+                rows.add(row);
+            }
+        }
+        return rows;
     }
 
     private String normalizeHeader(String header) {

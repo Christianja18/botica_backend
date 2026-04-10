@@ -21,10 +21,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -59,27 +59,8 @@ public class PedidoService {
         boolean creating = dto.getIdPedido() == null;
         Pedido pedido = creating ? new Pedido() : findById(dto.getIdPedido());
 
-        pedido.setCliente(resolveCliente(dto.getIdCliente()));
-        pedido.setUsuario(resolveUsuario(dto.getIdUsuario()));
-        pedido.setEstado(resolveEstado(dto.getEstado()));
-
-        if (creating && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank()) {
-            pedido.setFechaPedido(parseFecha(dto.getFechaPedido()));
-        }
-
-        if (dto.getDetalles() != null) {
-            List<DetallePedido> detalles = synchronizeDetalles(dto.getDetalles(), pedido);
-            if (pedido.getDetalles() == null) {
-                pedido.setDetalles(new ArrayList<>());
-            } else {
-                pedido.getDetalles().clear();
-            }
-            pedido.getDetalles().addAll(detalles);
-            pedido.setTotal(calculateTotal(pedido.getDetalles()));
-        } else if (creating) {
-            pedido.setDetalles(new ArrayList<>());
-            pedido.setTotal(BigDecimal.ZERO);
-        }
+        applyPedidoHeader(dto, pedido, creating);
+        applyPedidoDetalles(dto, pedido, creating);
 
         validatePedidoForSingleOperation(pedido, creating, dto.getDetalles() != null);
 
@@ -114,7 +95,7 @@ public class PedidoService {
 
     private Pedido.EstadoPedido resolveEstado(String estado) {
         try {
-            return estado == null ? Pedido.EstadoPedido.pendiente : Pedido.EstadoPedido.valueOf(estado);
+            return estado == null ? Pedido.EstadoPedido.pendiente : Pedido.EstadoPedido.valueOf(estado.trim().toLowerCase());
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException("Estado de pedido invalido: " + estado);
         }
@@ -141,6 +122,38 @@ public class PedidoService {
         return new ArrayList<>(detalleDTOs.stream()
                 .map(dto -> buildDetalle(dto, pedido, existentes))
                 .toList());
+    }
+
+    private void applyPedidoHeader(PedidoDTO dto, Pedido pedido, boolean creating) {
+        pedido.setCliente(resolveCliente(dto.getIdCliente()));
+        pedido.setUsuario(resolveUsuario(dto.getIdUsuario()));
+        pedido.setEstado(resolveEstado(dto.getEstado()));
+
+        if (creating && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank()) {
+            pedido.setFechaPedido(parseFecha(dto.getFechaPedido()));
+        }
+    }
+
+    private void applyPedidoDetalles(PedidoDTO dto, Pedido pedido, boolean creating) {
+        if (dto.getDetalles() != null) {
+            replaceDetalles(pedido, synchronizeDetalles(dto.getDetalles(), pedido));
+            pedido.setTotal(calculateTotal(pedido.getDetalles()));
+            return;
+        }
+
+        if (creating) {
+            pedido.setDetalles(new ArrayList<>());
+            pedido.setTotal(BigDecimal.ZERO);
+        }
+    }
+
+    private void replaceDetalles(Pedido pedido, List<DetallePedido> detalles) {
+        if (pedido.getDetalles() == null) {
+            pedido.setDetalles(new ArrayList<>());
+        } else {
+            pedido.getDetalles().clear();
+        }
+        pedido.getDetalles().addAll(detalles);
     }
 
     private DetallePedido buildDetalle(DetallePedidoDTO dto, Pedido pedido, Map<Integer, DetallePedido> existentes) {

@@ -8,6 +8,8 @@ import com.botica.botica.entity.Usuario;
 import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.BoletaRepository;
 import com.botica.botica.repository.PedidoRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +17,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class BoletaService {
 
     private final BoletaRepository boletaRepository;
     private final PedidoRepository pedidoRepository;
+    private final ObjectMapper objectMapper;
 
     public List<Boleta> findAll() {
         return boletaRepository.findAll();
@@ -42,8 +47,7 @@ public class BoletaService {
                 ? findById(dto.getIdBoleta())
                 : new Boleta();
 
-        Pedido pedido = pedidoRepository.findById(dto.getIdPedido())
-                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con id: " + dto.getIdPedido()));
+        Pedido pedido = resolvePedido(dto.getIdPedido());
 
         boleta.setNumeroBoleta(dto.getNumeroBoleta());
         boleta.setPedido(pedido);
@@ -60,6 +64,11 @@ public class BoletaService {
         return findById(saved.getIdBoleta());
     }
 
+    private Pedido resolvePedido(Integer idPedido) {
+        return pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con id: " + idPedido));
+    }
+
     private String resolveDatosCliente(BoletaDTO dto, Pedido pedido) {
         if (dto.getDatosCliente() != null && !dto.getDatosCliente().isBlank()) {
             return dto.getDatosCliente();
@@ -70,19 +79,10 @@ public class BoletaService {
             return null;
         }
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("{\"nombre\":\"")
-                .append(cliente.getNombre())
-                .append(' ')
-                .append(cliente.getApellido())
-                .append('"');
-        if (cliente.getDni() != null && !cliente.getDni().isBlank()) {
-            builder.append(",\"dni\":\"")
-                    .append(cliente.getDni())
-                    .append('"');
-        }
-        builder.append('}');
-        return builder.toString();
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("nombre", buildFullName(cliente.getNombre(), cliente.getApellido()));
+        values.put("dni", cliente.getDni());
+        return toJson(values);
     }
 
     private String resolveDatosEmpleado(BoletaDTO dto, Pedido pedido) {
@@ -95,7 +95,30 @@ public class BoletaService {
             return null;
         }
 
-        return "{\"empleado\":\"" + usuario.getNombre() + ' ' + usuario.getApellido() + "\"}";
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("empleado", buildFullName(usuario.getNombre(), usuario.getApellido()));
+        return toJson(values);
+    }
+
+    private String buildFullName(String nombre, String apellido) {
+        String safeNombre = nombre == null ? "" : nombre.trim();
+        String safeApellido = apellido == null ? "" : apellido.trim();
+        return (safeNombre + " " + safeApellido).trim();
+    }
+
+    private String toJson(Map<String, String> values) {
+        try {
+            return objectMapper.writeValueAsString(values.entrySet().stream()
+                    .filter(entry -> entry.getValue() != null && !entry.getValue().isBlank())
+                    .collect(java.util.stream.Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (left, right) -> right,
+                            java.util.LinkedHashMap::new
+                    )));
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("No se pudo serializar los datos de la boleta", ex);
+        }
     }
 
     public void deleteById(Integer id) {

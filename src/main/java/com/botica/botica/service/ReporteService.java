@@ -7,6 +7,7 @@ import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.PedidoRepository;
 import com.botica.botica.repository.ReporteRepository;
 import com.botica.botica.repository.UsuarioRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -76,18 +77,7 @@ public class ReporteService {
                 "total", totalVentas
         );
 
-        try {
-            String datosJson = objectMapper.writeValueAsString(datos);
-            Reporte reporte = new Reporte();
-            reporte.setTipoReporte(Reporte.TipoReporte.ventas);
-            reporte.setFechaInicio(fechaInicio);
-            reporte.setFechaFin(fechaFin);
-            reporte.setGeneradoPor(generadoPor);
-            reporte.setDatos(datosJson);
-            return save(reporte);
-        } catch (Exception e) {
-            throw new RuntimeException("Error generando reporte de ventas", e);
-        }
+        return saveReport(Reporte.TipoReporte.ventas, fechaInicio, fechaFin, generadoPor, datos, "Error generando reporte de ventas");
     }
 
     public Reporte generarReporteInventario(Integer generadoPorId) {
@@ -95,52 +85,29 @@ public class ReporteService {
         List<Map<String, Object>> inventarioBajo = getInventarioBajo();
         Map<String, Object> datos = Map.of("inventario_bajo", inventarioBajo);
 
-        try {
-            String datosJson = objectMapper.writeValueAsString(datos);
-            Reporte reporte = new Reporte();
-            reporte.setTipoReporte(Reporte.TipoReporte.inventario);
-            reporte.setGeneradoPor(generadoPor);
-            reporte.setDatos(datosJson);
-            return save(reporte);
-        } catch (Exception e) {
-            throw new RuntimeException("Error generando reporte de inventario", e);
-        }
+        return saveReport(Reporte.TipoReporte.inventario, null, null, generadoPor, datos, "Error generando reporte de inventario");
     }
 
     public List<Map<String, Object>> getVentasPorMes(int year) {
-        String sql = "SELECT anio, mes, total_ventas FROM vista_ventas_mensuales WHERE anio = :year";
-        Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("year", year);
-        List<Object[]> results = query.getResultList();
-        return results.stream()
+        return executeNativeQuery("SELECT anio, mes, total_ventas FROM vista_ventas_mensuales WHERE anio = ?1", year).stream()
                 .map(row -> Map.of("anio", row[0], "mes", row[1], "total", row[2]))
                 .toList();
     }
 
     public List<Map<String, Object>> getGananciasPorMes(int year) {
-        String sql = "SELECT anio, mes, ganancia FROM vista_ganancias_mensuales WHERE anio = :year";
-        Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("year", year);
-        List<Object[]> results = query.getResultList();
-        return results.stream()
+        return executeNativeQuery("SELECT anio, mes, ganancia FROM vista_ganancias_mensuales WHERE anio = ?1", year).stream()
                 .map(row -> Map.of("anio", row[0], "mes", row[1], "ganancia", row[2]))
                 .toList();
     }
 
     public List<Map<String, Object>> getInventarioBajo() {
-        String sql = "SELECT nombre, stock_actual, stock_minimo FROM vista_inventario_bajo";
-        Query query = entityManager.createNativeQuery(sql);
-        List<Object[]> results = query.getResultList();
-        return results.stream()
+        return executeNativeQuery("SELECT nombre, stock_actual, stock_minimo FROM vista_inventario_bajo").stream()
                 .map(row -> Map.of("nombre", row[0], "stock_actual", row[1], "stock_minimo", row[2]))
                 .toList();
     }
 
     public List<Map<String, Object>> getProductosPorVencer() {
-        String sql = "SELECT id_producto, codigo_barras, nombre, fecha_vencimiento, dias_para_vencer FROM vista_productos_por_vencer";
-        Query query = entityManager.createNativeQuery(sql);
-        List<Object[]> results = query.getResultList();
-        return results.stream()
+        return executeNativeQuery("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento, dias_para_vencer FROM vista_productos_por_vencer").stream()
                 .map(row -> Map.of(
                         "id_producto", row[0],
                         "codigo_barras", row[1],
@@ -152,10 +119,7 @@ public class ReporteService {
     }
 
     public List<Map<String, Object>> getProductosVencidos() {
-        String sql = "SELECT id_producto, codigo_barras, nombre, fecha_vencimiento FROM vista_productos_vencidos";
-        Query query = entityManager.createNativeQuery(sql);
-        List<Object[]> results = query.getResultList();
-        return results.stream()
+        return executeNativeQuery("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento FROM vista_productos_vencidos").stream()
                 .map(row -> Map.of(
                         "id_producto", row[0],
                         "codigo_barras", row[1],
@@ -163,6 +127,44 @@ public class ReporteService {
                         "fecha_vencimiento", row[3]
                 ))
                 .toList();
+    }
+
+    private Reporte saveReport(Reporte.TipoReporte tipoReporte,
+                               LocalDateTime fechaInicio,
+                               LocalDateTime fechaFin,
+                               Usuario generadoPor,
+                               Map<String, Object> datos,
+                               String errorMessage) {
+        try {
+            Reporte reporte = new Reporte();
+            reporte.setTipoReporte(tipoReporte);
+            reporte.setFechaInicio(fechaInicio);
+            reporte.setFechaFin(fechaFin);
+            reporte.setGeneradoPor(generadoPor);
+            reporte.setDatos(writeJson(datos));
+            return save(reporte);
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException(errorMessage, ex);
+        }
+    }
+
+    private String writeJson(Map<String, Object> datos) {
+        try {
+            return objectMapper.writeValueAsString(datos);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("No se pudo serializar el contenido del reporte", ex);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object[]> executeNativeQuery(String sql, Object... parameters) {
+        Query query = entityManager.createNativeQuery(sql);
+        for (int index = 0; index < parameters.length; index++) {
+            query.setParameter(index + 1, parameters[index]);
+        }
+        return query.getResultList();
     }
 
     private Usuario resolveUsuario(Integer usuarioId) {
