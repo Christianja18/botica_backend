@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,10 @@ public class ReporteService {
 
     public List<Reporte> findAll() {
         return reporteRepository.findAll();
+    }
+
+    public Page<Reporte> findAll(Pageable pageable) {
+        return reporteRepository.findAll(pageable);
     }
 
     public Reporte findById(Integer id) {

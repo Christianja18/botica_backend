@@ -1,6 +1,8 @@
 package com.botica.botica.repository;
 
 import com.botica.botica.entity.Reporte;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,10 @@ public interface ReporteRepository extends JpaRepository<Reporte, Integer> {
     @Override
     @EntityGraph(attributePaths = {"generadoPor"})
     List<Reporte> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"generadoPor"})
+    Page<Reporte> findAll(Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"generadoPor"})

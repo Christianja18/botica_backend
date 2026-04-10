@@ -14,6 +14,8 @@ import com.botica.botica.repository.PedidoRepository;
 import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,10 @@ public class PedidoService {
 
     public List<Pedido> findAll() {
         return pedidoRepository.findAll();
+    }
+
+    public Page<Pedido> findAll(Pageable pageable) {
+        return pedidoRepository.findAll(pageable);
     }
 
     public Pedido findById(Integer id) {

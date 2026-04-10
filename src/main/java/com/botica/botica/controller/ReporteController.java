@@ -1,5 +1,6 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.dto.ReporteDTO;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.mapper.ReporteMapper;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,20 @@ public class ReporteController {
         return ResponseEntity.ok(reporteService.findAll().stream()
                 .map(reporteMapper::toDTO)
                 .collect(Collectors.toList()));
+    }
+
+    @GetMapping("/paginado")
+    @Operation(summary = "Obtener reportes paginados", description = "Retorna una lista paginada de reportes generados en el sistema")
+    public ResponseEntity<PageResponseDTO<ReporteDTO>> getReportesPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "idReporte") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageResponseDTO<ReporteDTO> response = PageResponseDTO.from(
+                reporteService.findAll(PageRequest.of(page, size, sort)).map(reporteMapper::toDTO)
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
