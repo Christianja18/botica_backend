@@ -28,6 +28,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
     @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findByNombreContainingIgnoreCase(String nombre);
 
+    @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findByCategoriaIdCategoria(Integer idCategoria);
 
     @EntityGraph(attributePaths = {"categoria", "proveedor"})

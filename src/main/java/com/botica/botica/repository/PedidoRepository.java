@@ -48,7 +48,19 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
     })
     List<Pedido> findByEstado(Pedido.EstadoPedido estado);
 
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "usuario",
+            "detalles",
+            "detalles.producto"
+    })
     List<Pedido> findByFechaPedidoBetween(LocalDateTime start, LocalDateTime end);
 
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "usuario",
+            "detalles",
+            "detalles.producto"
+    })
     List<Pedido> findByFechaPedidoBetweenAndEstado(LocalDateTime start, LocalDateTime end, Pedido.EstadoPedido estado);
 }
