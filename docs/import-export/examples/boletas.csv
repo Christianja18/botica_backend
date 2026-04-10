@@ -1,0 +1,3 @@
+id_boleta,numero_boleta,id_pedido,fecha_emision,total,igv,total_con_igv,datos_cliente,datos_empleado,impresa
+1,B001-000001,1,,14.80,2.66,,"{""nombre"":""Carlos Garcia"",""dni"":""12345678""}","{""empleado"":""Juan Lopez""}",true
+,B001-000099,2,,0.00,0.00,,"{""nombre"":""Sofia Ramos"",""dni"":""87654321""}","{""empleado"":""Maria Perez""}",false

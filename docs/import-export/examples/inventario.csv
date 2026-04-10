@@ -1,0 +1,3 @@
+id_inventario,id_producto,producto_codigo_barras,stock_actual,stock_minimo,fecha_actualizacion
+1,,,140,25,
+,,7751234567999,60,15,

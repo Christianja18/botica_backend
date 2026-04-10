@@ -1,0 +1,3 @@
+id_producto,nombre,codigo_barras,descripcion,precio_venta,precio_compra,id_categoria,categoria_nombre,id_proveedor,proveedor_ruc,requiere_receta,fecha_vencimiento,fecha_creacion
+1,Paracetamol 500mg,7751234567890,Tabletas para dolor y fiebre - presentacion actualizada,5.80,2.10,,Medicamentos,,20512345678,false,2026-12-31,
+,Amoxicilina 500mg,7751234567999,Antibiotico de uso comun,16.50,7.20,,Medicamentos,,20645678901,true,2027-05-30,
