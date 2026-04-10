@@ -1,10 +1,14 @@
 package com.botica.botica.controller;
 
 import com.botica.botica.dto.CategoriaDTO;
+import com.botica.botica.dto.ImportResultDTO;
 import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.entity.Categoria;
 import com.botica.botica.mapper.CategoriaMapper;
 import com.botica.botica.service.CategoriaService;
+import com.botica.botica.service.importexport.ImportExportFacadeService;
+import com.botica.botica.service.importexport.TabularFileFormat;
+import com.botica.botica.util.ImportExportResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,8 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +32,7 @@ public class CategoriaController {
 
     private final CategoriaService categoriaService;
     private final CategoriaMapper categoriaMapper;
+    private final ImportExportFacadeService importExportFacadeService;
 
     @GetMapping
     @Operation(summary = "Obtener todas las categorias", description = "Retorna una lista de todas las categorias de productos registradas")
@@ -47,6 +54,23 @@ public class CategoriaController {
                 categoriaService.findAll(PageRequest.of(page, size, sort)).map(categoriaMapper::toDTO)
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/exportar/{formato}")
+    @Operation(summary = "Exportar categorias", description = "Exporta las categorias registradas en formato CSV o Excel usando un archivo reimportable")
+    public ResponseEntity<byte[]> exportCategorias(@PathVariable String formato) {
+        return ImportExportResponseBuilder.build(
+                importExportFacadeService.exportData("categorias", TabularFileFormat.from(formato))
+        );
+    }
+
+    @PostMapping(value = "/importar/{formato}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Importar categorias", description = "Importa categorias desde un archivo CSV o Excel. Inserta o actualiza por id_categoria o nombre")
+    public ResponseEntity<ImportResultDTO> importCategorias(@PathVariable String formato,
+                                                            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(
+                importExportFacadeService.importData("categorias", file, TabularFileFormat.from(formato))
+        );
     }
 
     @GetMapping("/{id}")

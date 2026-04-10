@@ -52,13 +52,18 @@ public class DetallePedidoService {
         DetallePedido detalle = dto.getIdDetalle() != null
                 ? findById(dto.getIdDetalle())
                 : new DetallePedido();
+        Integer previousPedidoId = detalle.getPedido() != null ? detalle.getPedido().getIdPedido() : null;
 
         detalle.setPedido(pedido);
         detalle.setProducto(producto);
         detalle.setCantidad(dto.getCantidad());
         detalle.setPrecioUnitario(dto.getPrecioUnitario());
 
-        return save(detalle);
+        DetallePedido saved = save(detalle);
+        if (previousPedidoId != null && !previousPedidoId.equals(saved.getPedido().getIdPedido())) {
+            updatePedidoTotal(previousPedidoId);
+        }
+        return saved;
     }
 
     public void deleteById(Integer id) {

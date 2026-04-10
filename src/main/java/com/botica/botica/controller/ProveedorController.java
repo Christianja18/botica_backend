@@ -1,10 +1,14 @@
 package com.botica.botica.controller;
 
+import com.botica.botica.dto.ImportResultDTO;
 import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.dto.ProveedorDTO;
 import com.botica.botica.entity.Proveedor;
 import com.botica.botica.mapper.ProveedorMapper;
 import com.botica.botica.service.ProveedorService;
+import com.botica.botica.service.importexport.ImportExportFacadeService;
+import com.botica.botica.service.importexport.TabularFileFormat;
+import com.botica.botica.util.ImportExportResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,8 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +32,7 @@ public class ProveedorController {
 
     private final ProveedorService proveedorService;
     private final ProveedorMapper proveedorMapper;
+    private final ImportExportFacadeService importExportFacadeService;
 
     @GetMapping
     @Operation(summary = "Obtener todos los proveedores", description = "Retorna una lista de todos los proveedores registrados")
@@ -49,6 +56,23 @@ public class ProveedorController {
                 proveedorService.findAll(PageRequest.of(page, size, sort)).map(proveedorMapper::toDTO)
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/exportar/{formato}")
+    @Operation(summary = "Exportar proveedores", description = "Exporta los proveedores registrados en formato CSV o Excel usando un archivo reimportable")
+    public ResponseEntity<byte[]> exportProveedores(@PathVariable String formato) {
+        return ImportExportResponseBuilder.build(
+                importExportFacadeService.exportData("proveedores", TabularFileFormat.from(formato))
+        );
+    }
+
+    @PostMapping(value = "/importar/{formato}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Importar proveedores", description = "Importa proveedores desde un archivo CSV o Excel. Inserta o actualiza por id_proveedor o RUC")
+    public ResponseEntity<ImportResultDTO> importProveedores(@PathVariable String formato,
+                                                             @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(
+                importExportFacadeService.importData("proveedores", file, TabularFileFormat.from(formato))
+        );
     }
 
     @GetMapping("/{id}")

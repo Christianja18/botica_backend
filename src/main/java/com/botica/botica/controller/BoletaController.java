@@ -1,10 +1,14 @@
 package com.botica.botica.controller;
 
 import com.botica.botica.dto.BoletaDTO;
+import com.botica.botica.dto.ImportResultDTO;
 import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.entity.Boleta;
 import com.botica.botica.mapper.BoletaMapper;
 import com.botica.botica.service.BoletaService;
+import com.botica.botica.service.importexport.ImportExportFacadeService;
+import com.botica.botica.service.importexport.TabularFileFormat;
+import com.botica.botica.util.ImportExportResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,8 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +32,7 @@ public class BoletaController {
 
     private final BoletaService boletaService;
     private final BoletaMapper boletaMapper;
+    private final ImportExportFacadeService importExportFacadeService;
 
     @GetMapping
     @Operation(summary = "Obtener todas las boletas", description = "Retorna una lista de todas las boletas registradas en el sistema")
@@ -47,6 +54,23 @@ public class BoletaController {
                 boletaService.findAll(PageRequest.of(page, size, sort)).map(boletaMapper::toDTO)
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/exportar/{formato}")
+    @Operation(summary = "Exportar boletas", description = "Exporta las boletas registradas en formato CSV o Excel usando un archivo reimportable")
+    public ResponseEntity<byte[]> exportBoletas(@PathVariable String formato) {
+        return ImportExportResponseBuilder.build(
+                importExportFacadeService.exportData("boletas", TabularFileFormat.from(formato))
+        );
+    }
+
+    @PostMapping(value = "/importar/{formato}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Importar boletas", description = "Importa boletas desde un archivo CSV o Excel. Inserta o actualiza por id_boleta o numero_boleta")
+    public ResponseEntity<ImportResultDTO> importBoletas(@PathVariable String formato,
+                                                         @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(
+                importExportFacadeService.importData("boletas", file, TabularFileFormat.from(formato))
+        );
     }
 
     @GetMapping("/{id}")

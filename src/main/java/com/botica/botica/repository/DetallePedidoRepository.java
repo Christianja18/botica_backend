@@ -24,4 +24,7 @@ public interface DetallePedidoRepository extends JpaRepository<DetallePedido, In
 
     @EntityGraph(attributePaths = {"pedido", "pedido.cliente", "pedido.usuario", "producto"})
     List<DetallePedido> findByPedidoIdPedido(Integer pedidoId);
+
+    @EntityGraph(attributePaths = {"pedido", "pedido.cliente", "pedido.usuario", "producto"})
+    List<DetallePedido> findByPedidoIdPedidoAndProductoIdProducto(Integer pedidoId, Integer productoId);
 }
