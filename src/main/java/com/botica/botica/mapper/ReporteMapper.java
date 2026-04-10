@@ -2,18 +2,15 @@ package com.botica.botica.mapper;
 
 import com.botica.botica.dto.ReporteDTO;
 import com.botica.botica.entity.Reporte;
-import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
+import com.botica.botica.entity.Usuario;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Component
-@RequiredArgsConstructor
 public class ReporteMapper {
 
-    private final ModelMapper modelMapper;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public ReporteDTO toDTO(Reporte reporte) {
@@ -41,6 +38,7 @@ public class ReporteMapper {
 
         if (reporte.getGeneradoPor() != null) {
             dto.setGeneradoPor(reporte.getGeneradoPor().getIdUsuario());
+            dto.setUsuarioGenerador(toUsuarioDTO(reporte.getGeneradoPor()));
         }
 
         return dto;
@@ -52,11 +50,11 @@ public class ReporteMapper {
         }
         Reporte reporte = new Reporte();
         reporte.setIdReporte(dto.getIdReporte());
-        
+
         if (dto.getTipoReporte() != null) {
             reporte.setTipoReporte(Reporte.TipoReporte.valueOf(dto.getTipoReporte()));
         }
-        
+
         reporte.setDatos(dto.getDatos());
         reporte.setArchivoPath(dto.getArchivoPath());
 
@@ -71,14 +69,23 @@ public class ReporteMapper {
         if (dto == null) {
             return reporte;
         }
-        
+
         if (dto.getTipoReporte() != null) {
             reporte.setTipoReporte(Reporte.TipoReporte.valueOf(dto.getTipoReporte()));
         }
-        
+
         reporte.setDatos(dto.getDatos());
         reporte.setArchivoPath(dto.getArchivoPath());
 
         return reporte;
+    }
+
+    private ReporteDTO.UsuarioResumenDTO toUsuarioDTO(Usuario usuario) {
+        return ReporteDTO.UsuarioResumenDTO.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .nombre(usuario.getNombre())
+                .apellido(usuario.getApellido())
+                .email(usuario.getEmail())
+                .build();
     }
 }

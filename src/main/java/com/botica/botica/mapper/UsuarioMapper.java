@@ -1,9 +1,9 @@
 package com.botica.botica.mapper;
 
 import com.botica.botica.dto.UsuarioDTO;
+import com.botica.botica.entity.Rol;
 import com.botica.botica.entity.Usuario;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -13,7 +13,6 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class UsuarioMapper {
 
-    private final ModelMapper modelMapper;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public UsuarioDTO toDTO(Usuario usuario) {
@@ -30,6 +29,7 @@ public class UsuarioMapper {
 
         if (usuario.getRol() != null) {
             dto.setIdRol(usuario.getRol().getIdRol());
+            dto.setRol(toRolDTO(usuario.getRol()));
         }
 
         if (usuario.getFechaCreacion() != null) {
@@ -66,12 +66,24 @@ public class UsuarioMapper {
         usuario.setApellido(dto.getApellido());
         usuario.setEmail(dto.getEmail());
         usuario.setActivo(dto.getActivo());
-        
-        // Solo actualizar contraseña si se proporciona
+
         if (dto.getPasswordHash() != null && !dto.getPasswordHash().isBlank()) {
             usuario.setPasswordHash(dto.getPasswordHash());
         }
 
         return usuario;
+    }
+
+    private UsuarioDTO.RolResumenDTO toRolDTO(Rol rol) {
+        return UsuarioDTO.RolResumenDTO.builder()
+                .idRol(rol.getIdRol())
+                .nombre(rol.getNombre())
+                .descripcion(rol.getDescripcion())
+                .activo(rol.getActivo())
+                .puedeVender(rol.getPuedeVender())
+                .puedeAdministrarInventario(rol.getPuedeAdministrarInventario())
+                .puedeVerReportes(rol.getPuedeVerReportes())
+                .puedeAdministrarUsuarios(rol.getPuedeAdministrarUsuarios())
+                .build();
     }
 }

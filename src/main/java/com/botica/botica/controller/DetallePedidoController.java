@@ -39,14 +39,14 @@ public class DetallePedidoController {
     }
 
     @PostMapping
-    @Operation(summary = "Crear nuevo detalle de pedido", description = "Agrega un nuevo detalle a un pedido existente")
+    @Operation(summary = "Crear nuevo detalle de pedido", description = "Agrega un detalle de forma puntual a un pedido existente. Para ventas completas se recomienda usar la operacion de pedidos")
     public ResponseEntity<DetallePedidoDTO> createDetallePedido(@Valid @RequestBody DetallePedidoDTO detallePedidoDTO) {
         DetallePedido saved = detallePedidoService.saveFromDto(detallePedidoDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(detallePedidoMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar detalle de pedido", description = "Actualiza los datos de un detalle de pedido existente")
+    @Operation(summary = "Actualizar detalle de pedido", description = "Actualiza una linea puntual de detalle de pedido. Para actualizaciones completas se recomienda usar la operacion de pedidos")
     public ResponseEntity<DetallePedidoDTO> updateDetallePedido(@PathVariable Integer id, @Valid @RequestBody DetallePedidoDTO detallePedidoDTO) {
         detallePedidoDTO.setIdDetalle(id);
         DetallePedido saved = detallePedidoService.saveFromDto(detallePedidoDTO);

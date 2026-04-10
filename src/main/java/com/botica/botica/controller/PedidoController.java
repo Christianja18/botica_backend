@@ -47,14 +47,14 @@ public class PedidoController {
     }
 
     @PostMapping
-    @Operation(summary = "Crear nuevo pedido", description = "Crea un nuevo pedido con su informacion principal y sus detalles")
+    @Operation(summary = "Crear nuevo pedido", description = "Crea un nuevo pedido con su cabecera y sus detalles en una sola operacion transaccional")
     public ResponseEntity<PedidoDTO> createPedido(@Valid @RequestBody PedidoDTO pedidoDTO) {
         Pedido saved = pedidoService.saveFromDto(pedidoDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar pedido", description = "Actualiza los datos de un pedido existente")
+    @Operation(summary = "Actualizar pedido", description = "Actualiza un pedido existente junto con sus detalles en una sola operacion transaccional")
     public ResponseEntity<PedidoDTO> updatePedido(@PathVariable Integer id, @Valid @RequestBody PedidoDTO pedidoDTO) {
         pedidoDTO.setIdPedido(id);
         Pedido saved = pedidoService.saveFromDto(pedidoDTO);

@@ -90,7 +90,7 @@ public class UsuarioService {
 
         Usuario saved = usuarioRepository.save(usuario);
         logger.info("Usuario guardado exitosamente con id: {}", saved.getIdUsuario());
-        return saved;
+        return findById(saved.getIdUsuario());
     }
 
     public boolean matchesPassword(String rawPassword, Usuario usuario) {

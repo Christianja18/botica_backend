@@ -34,7 +34,7 @@ public class DetallePedidoService {
     public DetallePedido save(DetallePedido detallePedido) {
         DetallePedido saved = detallePedidoRepository.save(detallePedido);
         updatePedidoTotal(saved.getPedido().getIdPedido());
-        return saved;
+        return findById(saved.getIdDetalle());
     }
 
     public DetallePedido saveFromDto(DetallePedidoDTO dto) {

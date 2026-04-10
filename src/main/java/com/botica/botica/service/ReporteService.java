@@ -40,7 +40,8 @@ public class ReporteService {
 
     @Transactional
     public Reporte save(Reporte reporte) {
-        return reporteRepository.save(reporte);
+        Reporte saved = reporteRepository.save(reporte);
+        return findById(saved.getIdReporte());
     }
 
     @Transactional

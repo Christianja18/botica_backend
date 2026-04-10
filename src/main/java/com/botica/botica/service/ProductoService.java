@@ -87,7 +87,7 @@ public class ProductoService {
             validateCodigoBarras(producto);
             Producto saved = productoRepository.save(producto);
             logger.info("Producto guardado exitosamente con id: {}", saved.getIdProducto());
-            return saved;
+            return findById(saved.getIdProducto());
         } catch (Exception e) {
             logger.error("Error al guardar producto: nombre={}, precioVenta={}, error={}",
                         producto.getNombre(), producto.getPrecioVenta(), e.getMessage());

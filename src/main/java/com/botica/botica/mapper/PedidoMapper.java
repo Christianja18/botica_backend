@@ -1,9 +1,10 @@
 package com.botica.botica.mapper;
 
 import com.botica.botica.dto.PedidoDTO;
+import com.botica.botica.entity.Cliente;
 import com.botica.botica.entity.Pedido;
+import com.botica.botica.entity.Usuario;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PedidoMapper {
 
-    private final ModelMapper modelMapper;
     private final DetallePedidoMapper detallePedidoMapper;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -31,10 +31,12 @@ public class PedidoMapper {
 
         if (pedido.getCliente() != null) {
             dto.setIdCliente(pedido.getCliente().getIdCliente());
+            dto.setCliente(toClienteDTO(pedido.getCliente()));
         }
 
         if (pedido.getUsuario() != null) {
             dto.setIdUsuario(pedido.getUsuario().getIdUsuario());
+            dto.setUsuario(toUsuarioDTO(pedido.getUsuario()));
         }
 
         if (pedido.getFechaPedido() != null) {
@@ -43,7 +45,7 @@ public class PedidoMapper {
 
         if (pedido.getDetalles() != null) {
             dto.setDetalles(pedido.getDetalles().stream()
-                    .map(detallePedidoMapper::toDTO)
+                    .map(detallePedidoMapper::toDTOWithoutPedido)
                     .collect(Collectors.toList()));
         } else {
             dto.setDetalles(Collections.emptyList());
@@ -80,5 +82,25 @@ public class PedidoMapper {
         }
 
         return pedido;
+    }
+
+    private PedidoDTO.ClienteResumenDTO toClienteDTO(Cliente cliente) {
+        return PedidoDTO.ClienteResumenDTO.builder()
+                .idCliente(cliente.getIdCliente())
+                .nombre(cliente.getNombre())
+                .apellido(cliente.getApellido())
+                .dni(cliente.getDni())
+                .telefono(cliente.getTelefono())
+                .email(cliente.getEmail())
+                .build();
+    }
+
+    private PedidoDTO.UsuarioResumenDTO toUsuarioDTO(Usuario usuario) {
+        return PedidoDTO.UsuarioResumenDTO.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .nombre(usuario.getNombre())
+                .apellido(usuario.getApellido())
+                .email(usuario.getEmail())
+                .build();
     }
 }

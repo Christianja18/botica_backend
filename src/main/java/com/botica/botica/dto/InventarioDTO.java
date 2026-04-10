@@ -18,6 +18,8 @@ public class InventarioDTO {
     @NotNull(message = "El producto es obligatorio")
     private Integer idProducto;
 
+    private ProductoResumenDTO producto;
+
     @NotNull(message = "El stock actual es obligatorio")
     @Min(value = 0, message = "El stock actual no puede ser negativo")
     private Integer stockActual;
@@ -27,4 +29,18 @@ public class InventarioDTO {
     private Integer stockMinimo;
 
     private String fechaActualizacion;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ProductoResumenDTO {
+        private Integer idProducto;
+        private String nombre;
+        private String codigoBarras;
+        private String descripcion;
+        private java.math.BigDecimal precioVenta;
+        private Boolean requiereReceta;
+        private String fechaVencimiento;
+    }
 }

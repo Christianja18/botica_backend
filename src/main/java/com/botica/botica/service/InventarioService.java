@@ -41,7 +41,8 @@ public class InventarioService {
         inventario.setStockMinimo(dto.getStockMinimo());
         inventario.setFechaActualizacion(LocalDateTime.now());
 
-        return inventarioRepository.save(inventario);
+        Inventario saved = inventarioRepository.save(inventario);
+        return findById(saved.getIdInventario());
     }
 
     public void deleteById(Integer id) {

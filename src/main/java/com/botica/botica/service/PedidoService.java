@@ -15,13 +15,16 @@ import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -51,31 +54,37 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+    @Transactional
     public Pedido saveFromDto(PedidoDTO dto) {
-        Pedido pedido = dto.getIdPedido() != null
-                ? findById(dto.getIdPedido())
-                : new Pedido();
+        boolean creating = dto.getIdPedido() == null;
+        Pedido pedido = creating ? new Pedido() : findById(dto.getIdPedido());
 
         pedido.setCliente(resolveCliente(dto.getIdCliente()));
         pedido.setUsuario(resolveUsuario(dto.getIdUsuario()));
         pedido.setEstado(resolveEstado(dto.getEstado()));
 
-        if (pedido.getIdPedido() == null && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank()) {
+        if (creating && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank()) {
             pedido.setFechaPedido(parseFecha(dto.getFechaPedido()));
         }
 
         if (dto.getDetalles() != null) {
-            List<DetallePedido> detalles = new ArrayList<>();
-            for (DetallePedidoDTO detalleDTO : dto.getDetalles()) {
-                detalles.add(buildDetalle(detalleDTO, pedido));
+            List<DetallePedido> detalles = synchronizeDetalles(dto.getDetalles(), pedido);
+            if (pedido.getDetalles() == null) {
+                pedido.setDetalles(new ArrayList<>());
+            } else {
+                pedido.getDetalles().clear();
             }
-            pedido.setDetalles(detalles);
-            pedido.setTotal(calculateTotal(detalles));
-        } else if (pedido.getIdPedido() == null) {
+            pedido.getDetalles().addAll(detalles);
+            pedido.setTotal(calculateTotal(pedido.getDetalles()));
+        } else if (creating) {
+            pedido.setDetalles(new ArrayList<>());
             pedido.setTotal(BigDecimal.ZERO);
         }
 
-        return pedidoRepository.save(pedido);
+        validatePedidoForSingleOperation(pedido, creating, dto.getDetalles() != null);
+
+        Pedido saved = pedidoRepository.save(pedido);
+        return findById(saved.getIdPedido());
     }
 
     public void deleteById(Integer id) {
@@ -119,13 +128,50 @@ public class PedidoService {
         }
     }
 
-    private DetallePedido buildDetalle(DetallePedidoDTO dto, Pedido pedido) {
-        DetallePedido detalle = new DetallePedido();
+    private List<DetallePedido> synchronizeDetalles(List<DetallePedidoDTO> detalleDTOs, Pedido pedido) {
+        Map<Integer, DetallePedido> existentes = new HashMap<>();
+        if (pedido.getDetalles() != null) {
+            for (DetallePedido detalle : pedido.getDetalles()) {
+                if (detalle.getIdDetalle() != null) {
+                    existentes.put(detalle.getIdDetalle(), detalle);
+                }
+            }
+        }
+
+        return new ArrayList<>(detalleDTOs.stream()
+                .map(dto -> buildDetalle(dto, pedido, existentes))
+                .toList());
+    }
+
+    private DetallePedido buildDetalle(DetallePedidoDTO dto, Pedido pedido, Map<Integer, DetallePedido> existentes) {
+        DetallePedido detalle;
+
+        if (dto.getIdDetalle() != null) {
+            detalle = existentes.get(dto.getIdDetalle());
+            if (detalle == null) {
+                throw new BadRequestException("El detalle con id " + dto.getIdDetalle() + " no pertenece al pedido actual");
+            }
+        } else {
+            detalle = new DetallePedido();
+        }
+
         detalle.setPedido(pedido);
         detalle.setProducto(resolveProducto(dto.getIdProducto()));
         detalle.setCantidad(dto.getCantidad());
         detalle.setPrecioUnitario(dto.getPrecioUnitario());
         return detalle;
+    }
+
+    private void validatePedidoForSingleOperation(Pedido pedido, boolean creating, boolean detallesWereProvided) {
+        if (pedido.getEstado() == Pedido.EstadoPedido.completado) {
+            if (pedido.getDetalles() == null || pedido.getDetalles().isEmpty()) {
+                throw new BadRequestException("Un pedido completado debe incluir al menos un detalle");
+            }
+        }
+
+        if (creating && detallesWereProvided && pedido.getDetalles().stream().anyMatch(detalle -> detalle.getCantidad() == null || detalle.getCantidad() <= 0)) {
+            throw new BadRequestException("Todos los detalles del pedido deben tener una cantidad valida");
+        }
     }
 
     private BigDecimal calculateTotal(List<DetallePedido> detalles) {

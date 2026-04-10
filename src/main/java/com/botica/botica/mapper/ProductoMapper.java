@@ -1,21 +1,25 @@
 package com.botica.botica.mapper;
 
 import com.botica.botica.dto.ProductoDTO;
+import com.botica.botica.entity.Categoria;
 import com.botica.botica.entity.Producto;
-import lombok.RequiredArgsConstructor;
+import com.botica.botica.entity.Proveedor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
-import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Component
-@RequiredArgsConstructor
 public class ProductoMapper {
 
     private final ModelMapper modelMapper;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter dateOnlyFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    public ProductoMapper(ModelMapper modelMapper) {
+        this.modelMapper = modelMapper;
+    }
 
     public ProductoDTO toDTO(Producto producto) {
         if (producto == null) {
@@ -28,12 +32,13 @@ public class ProductoMapper {
         if (producto.getFechaVencimiento() != null) {
             dto.setFechaVencimiento(producto.getFechaVencimiento().format(dateOnlyFormatter));
         }
-        // Mapear IDs de relaciones
         if (producto.getCategoria() != null) {
             dto.setIdCategoria(producto.getCategoria().getIdCategoria());
+            dto.setCategoria(toCategoriaDTO(producto.getCategoria()));
         }
         if (producto.getProveedor() != null) {
             dto.setIdProveedor(producto.getProveedor().getIdProveedor());
+            dto.setProveedor(toProveedorDTO(producto.getProveedor()));
         }
         return dto;
     }
@@ -67,5 +72,24 @@ public class ProductoMapper {
         producto.setPrecioCompra(dto.getPrecioCompra());
         producto.setRequiereReceta(dto.getRequiereReceta());
         return producto;
+    }
+
+    private ProductoDTO.CategoriaResumenDTO toCategoriaDTO(Categoria categoria) {
+        return ProductoDTO.CategoriaResumenDTO.builder()
+                .idCategoria(categoria.getIdCategoria())
+                .nombre(categoria.getNombre())
+                .descripcion(categoria.getDescripcion())
+                .build();
+    }
+
+    private ProductoDTO.ProveedorResumenDTO toProveedorDTO(Proveedor proveedor) {
+        return ProductoDTO.ProveedorResumenDTO.builder()
+                .idProveedor(proveedor.getIdProveedor())
+                .nombre(proveedor.getNombre())
+                .ruc(proveedor.getRuc())
+                .telefono(proveedor.getTelefono())
+                .email(proveedor.getEmail())
+                .direccion(proveedor.getDireccion())
+                .build();
     }
 }
