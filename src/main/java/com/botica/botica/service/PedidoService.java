@@ -15,6 +15,7 @@ import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +25,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +48,21 @@ public class PedidoService {
     }
 
     public Page<Pedido> findAll(Pageable pageable) {
-        return pedidoRepository.findAll(pageable);
+        Page<Integer> idPage = pedidoRepository.findPageIds(pageable);
+        if (idPage.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, idPage.getTotalElements());
+        }
+
+        List<Pedido> pedidos = pedidoRepository.findByIdPedidoIn(idPage.getContent());
+        Map<Integer, Pedido> byId = pedidos.stream()
+                .collect(Collectors.toMap(Pedido::getIdPedido, Function.identity()));
+
+        List<Pedido> ordered = idPage.getContent().stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
     }
 
     public Pedido findById(Integer id) {

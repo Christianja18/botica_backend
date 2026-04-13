@@ -12,14 +12,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +38,21 @@ public class BoletaService {
     }
 
     public Page<Boleta> findAll(Pageable pageable) {
-        return boletaRepository.findAll(pageable);
+        Page<Integer> idPage = boletaRepository.findPageIds(pageable);
+        if (idPage.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, idPage.getTotalElements());
+        }
+
+        List<Boleta> boletas = boletaRepository.findByIdBoletaIn(idPage.getContent());
+        Map<Integer, Boleta> byId = boletas.stream()
+                .collect(Collectors.toMap(Boleta::getIdBoleta, Function.identity()));
+
+        List<Boleta> ordered = idPage.getContent().stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
     }
 
     public Boleta findById(Integer id) {

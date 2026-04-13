@@ -1,10 +1,11 @@
 package com.botica.botica.repository;
 
 import com.botica.botica.entity.Boleta;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,9 +32,12 @@ public interface BoletaRepository extends JpaRepository<Boleta, Integer> {
             "pedido.detalles",
             "pedido.detalles.producto"
     })
-    Page<Boleta> findAll(Pageable pageable);
+    Optional<Boleta> findById(Integer id);
 
-    @Override
+    @Query(value = "select b.idBoleta from Boleta b",
+            countQuery = "select count(b) from Boleta b")
+    Page<Integer> findPageIds(Pageable pageable);
+
     @EntityGraph(attributePaths = {
             "pedido",
             "pedido.cliente",
@@ -41,7 +45,7 @@ public interface BoletaRepository extends JpaRepository<Boleta, Integer> {
             "pedido.detalles",
             "pedido.detalles.producto"
     })
-    Optional<Boleta> findById(Integer id);
+    List<Boleta> findByIdBoletaIn(List<Integer> ids);
 
     Optional<Boleta> findByNumeroBoleta(String numeroBoleta);
 }

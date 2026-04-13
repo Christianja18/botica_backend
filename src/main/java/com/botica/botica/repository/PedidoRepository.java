@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -21,15 +22,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             "detalles.producto"
     })
     List<Pedido> findAll();
-
-    @Override
-    @EntityGraph(attributePaths = {
-            "cliente",
-            "usuario",
-            "detalles",
-            "detalles.producto"
-    })
-    Page<Pedido> findAll(Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {
@@ -63,4 +55,16 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             "detalles.producto"
     })
     List<Pedido> findByFechaPedidoBetweenAndEstado(LocalDateTime start, LocalDateTime end, Pedido.EstadoPedido estado);
+
+    @Query(value = "select p.idPedido from Pedido p",
+            countQuery = "select count(p) from Pedido p")
+    Page<Integer> findPageIds(Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "usuario",
+            "detalles",
+            "detalles.producto"
+    })
+    List<Pedido> findByIdPedidoIn(List<Integer> ids);
 }
