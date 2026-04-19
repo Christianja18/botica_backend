@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -52,6 +53,7 @@ public class ProductoDTO {
     private ProveedorResumenDTO proveedor;
 
     @NotNull(message = "El campo requiere receta es obligatorio")
+    @Default
     private Boolean requiereReceta = false;
 
     private String fechaVencimiento;

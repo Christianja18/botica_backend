@@ -13,9 +13,9 @@ import com.botica.botica.repository.ClienteRepository;
 import com.botica.botica.repository.PedidoRepository;
 import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.repository.UsuarioRepository;
+import com.botica.botica.service.support.OrderedPageMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +25,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,20 +46,12 @@ public class PedidoService {
 
     public Page<Pedido> findAll(Pageable pageable) {
         Page<Integer> idPage = pedidoRepository.findPageIds(pageable);
-        if (idPage.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, idPage.getTotalElements());
-        }
-
-        List<Pedido> pedidos = pedidoRepository.findByIdPedidoIn(idPage.getContent());
-        Map<Integer, Pedido> byId = pedidos.stream()
-                .collect(Collectors.toMap(Pedido::getIdPedido, Function.identity()));
-
-        List<Pedido> ordered = idPage.getContent().stream()
-                .map(byId::get)
-                .filter(java.util.Objects::nonNull)
-                .toList();
-
-        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+        return OrderedPageMapper.map(
+                idPage,
+                pageable,
+                pedidoRepository.findByIdPedidoIn(idPage.getContent()),
+                Pedido::getIdPedido
+        );
     }
 
     public Pedido findById(Integer id) {
@@ -153,7 +142,7 @@ public class PedidoService {
         pedido.setUsuario(resolveUsuario(dto.getIdUsuario()));
         pedido.setEstado(resolveEstado(dto.getEstado()));
 
-        if (creating && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank()) {
+        if (shouldApplyCreationDate(dto, creating)) {
             pedido.setFechaPedido(parseFecha(dto.getFechaPedido()));
         }
     }
@@ -166,8 +155,7 @@ public class PedidoService {
         }
 
         if (creating) {
-            pedido.setDetalles(new ArrayList<>());
-            pedido.setTotal(BigDecimal.ZERO);
+            initializeEmptyDetalles(pedido);
         }
     }
 
@@ -200,13 +188,11 @@ public class PedidoService {
     }
 
     private void validatePedidoForSingleOperation(Pedido pedido, boolean creating, boolean detallesWereProvided) {
-        if (pedido.getEstado() == Pedido.EstadoPedido.completado) {
-            if (pedido.getDetalles() == null || pedido.getDetalles().isEmpty()) {
-                throw new BadRequestException("Un pedido completado debe incluir al menos un detalle");
-            }
+        if (pedido.getEstado() == Pedido.EstadoPedido.completado && !hasDetalles(pedido)) {
+            throw new BadRequestException("Un pedido completado debe incluir al menos un detalle");
         }
 
-        if (creating && detallesWereProvided && pedido.getDetalles().stream().anyMatch(detalle -> detalle.getCantidad() == null || detalle.getCantidad() <= 0)) {
+        if (creating && detallesWereProvided && hasInvalidCantidad(pedido.getDetalles())) {
             throw new BadRequestException("Todos los detalles del pedido deben tener una cantidad valida");
         }
     }
@@ -215,5 +201,23 @@ public class PedidoService {
         return detalles.stream()
                 .map(detalle -> detalle.getPrecioUnitario().multiply(BigDecimal.valueOf(detalle.getCantidad())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private boolean shouldApplyCreationDate(PedidoDTO dto, boolean creating) {
+        return creating && dto.getFechaPedido() != null && !dto.getFechaPedido().isBlank();
+    }
+
+    private void initializeEmptyDetalles(Pedido pedido) {
+        pedido.setDetalles(new ArrayList<>());
+        pedido.setTotal(BigDecimal.ZERO);
+    }
+
+    private boolean hasDetalles(Pedido pedido) {
+        return pedido.getDetalles() != null && !pedido.getDetalles().isEmpty();
+    }
+
+    private boolean hasInvalidCantidad(List<DetallePedido> detalles) {
+        return detalles.stream()
+                .anyMatch(detalle -> detalle.getCantidad() == null || detalle.getCantidad() <= 0);
     }
 }

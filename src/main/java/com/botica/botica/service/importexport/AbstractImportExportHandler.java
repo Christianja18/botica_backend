@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,8 +131,8 @@ public abstract class AbstractImportExportHandler implements ImportExportHandler
             return null;
         }
 
-        return switch (value.trim().toLowerCase()) {
-            case "true", "1", "si", "sí", "yes", "verdadero" -> true;
+        return switch (normalizeBooleanValue(value)) {
+            case "true", "1", "si", "yes", "verdadero" -> true;
             case "false", "0", "no", "falso" -> false;
             default -> throw new BadRequestException("El campo " + key + " debe ser true/false, 1/0 o si/no");
         };
@@ -161,5 +162,12 @@ public abstract class AbstractImportExportHandler implements ImportExportHandler
 
     protected String valueOf(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private String normalizeBooleanValue(String value) {
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .trim()
+                .toLowerCase();
     }
 }

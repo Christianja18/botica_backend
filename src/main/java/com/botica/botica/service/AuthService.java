@@ -31,18 +31,7 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Credenciales inválidas"));
 
-        if (!Boolean.TRUE.equals(usuario.getActivo())) {
-            throw new UnauthorizedException("El usuario está inactivo");
-        }
-
-        Rol rol = usuario.getRol();
-        if (rol == null || !Boolean.TRUE.equals(rol.getActivo())) {
-            throw new UnauthorizedException("El rol del usuario está inactivo");
-        }
-
-        if (!usuarioService.matchesPassword(request.getPassword(), usuario)) {
-            throw new UnauthorizedException("Credenciales inválidas");
-        }
+        validateAccess(usuario, request.getPassword());
 
         String token = UUID.randomUUID().toString();
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(SESSION_HOURS);
@@ -79,6 +68,21 @@ public class AuthService {
         return authorizationHeader.substring(7).trim();
     }
 
+    private void validateAccess(Usuario usuario, String rawPassword) {
+        if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            throw new UnauthorizedException("El usuario está inactivo");
+        }
+
+        Rol rol = usuario.getRol();
+        if (rol == null || !Boolean.TRUE.equals(rol.getActivo())) {
+            throw new UnauthorizedException("El rol del usuario está inactivo");
+        }
+
+        if (!usuarioService.matchesPassword(rawPassword, usuario)) {
+            throw new UnauthorizedException("Credenciales inválidas");
+        }
+    }
+
     private AuthSession getValidSession(String token) {
         if (token == null || token.isBlank()) {
             throw new UnauthorizedException("Token de sesión no proporcionado");
@@ -112,7 +116,7 @@ public class AuthService {
                 .idUsuario(usuario.getIdUsuario())
                 .nombre(usuario.getNombre())
                 .apellido(usuario.getApellido())
-                .nombreCompleto(usuario.getNombre() + " " + usuario.getApellido())
+                .nombreCompleto(buildFullName(usuario))
                 .email(usuario.getEmail())
                 .activo(usuario.getActivo())
                 .idRol(rol != null ? rol.getIdRol() : null)
@@ -122,6 +126,12 @@ public class AuthService {
                 .puedeVerReportes(rol != null ? rol.getPuedeVerReportes() : false)
                 .puedeAdministrarUsuarios(rol != null ? rol.getPuedeAdministrarUsuarios() : false)
                 .build();
+    }
+
+    private String buildFullName(Usuario usuario) {
+        String nombre = usuario.getNombre() == null ? "" : usuario.getNombre().trim();
+        String apellido = usuario.getApellido() == null ? "" : usuario.getApellido().trim();
+        return (nombre + " " + apellido).trim();
     }
 
     @Builder

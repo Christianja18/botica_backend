@@ -24,10 +24,18 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
 public class ReporteService {
+
+    private static final String SALES_SOURCE = " FROM pedidos p WHERE p.estado = 'completado'";
+    private static final String GAINS_SOURCE = " FROM pedidos p" +
+            " JOIN detalle_pedidos dp ON p.id_pedido = dp.id_pedido" +
+            " JOIN productos pr ON dp.id_producto = pr.id_producto" +
+            " WHERE p.estado = 'completado'";
+    private static final String PEDIDO_DATE_COLUMN = "p.fecha_pedido";
 
     private final ReporteRepository reporteRepository;
     private final PedidoRepository pedidoRepository;
@@ -100,46 +108,45 @@ public class ReporteService {
     public List<ResumenPeriodoDTO> getVentasResumen(String agrupacion, Integer year) {
         AgrupacionPeriodo agrupacionPeriodo = AgrupacionPeriodo.from(agrupacion);
         QuerySpec querySpec = buildSalesSummaryQuery(agrupacionPeriodo, year);
-        return executeNativeQuery(querySpec.sql(), querySpec.parameters()).stream()
-                .map(this::toResumenPeriodoDTO)
-                .toList();
+        return mapNativeQuery(querySpec, this::toResumenPeriodoDTO);
     }
 
     public List<ResumenPeriodoDTO> getGananciasResumen(String agrupacion, Integer year) {
         AgrupacionPeriodo agrupacionPeriodo = AgrupacionPeriodo.from(agrupacion);
         QuerySpec querySpec = buildGainSummaryQuery(agrupacionPeriodo, year);
-        return executeNativeQuery(querySpec.sql(), querySpec.parameters()).stream()
-                .map(this::toResumenPeriodoDTO)
-                .toList();
+        return mapNativeQuery(querySpec, this::toResumenPeriodoDTO);
     }
 
     public List<Map<String, Object>> getInventarioBajo() {
-        return executeNativeQuery("SELECT nombre, stock_actual, stock_minimo FROM vista_inventario_bajo").stream()
-                .map(row -> Map.of("nombre", row[0], "stock_actual", row[1], "stock_minimo", row[2]))
-                .toList();
+        return mapNativeQuery(
+                new QuerySpec("SELECT nombre, stock_actual, stock_minimo FROM vista_inventario_bajo"),
+                row -> Map.of("nombre", row[0], "stock_actual", row[1], "stock_minimo", row[2])
+        );
     }
 
     public List<Map<String, Object>> getProductosPorVencer() {
-        return executeNativeQuery("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento, dias_para_vencer FROM vista_productos_por_vencer").stream()
-                .map(row -> Map.of(
+        return mapNativeQuery(
+                new QuerySpec("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento, dias_para_vencer FROM vista_productos_por_vencer"),
+                row -> Map.of(
                         "id_producto", row[0],
                         "codigo_barras", row[1],
                         "nombre", row[2],
                         "fecha_vencimiento", row[3],
                         "dias_para_vencer", row[4]
-                ))
-                .toList();
+                )
+        );
     }
 
     public List<Map<String, Object>> getProductosVencidos() {
-        return executeNativeQuery("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento FROM vista_productos_vencidos").stream()
-                .map(row -> Map.of(
+        return mapNativeQuery(
+                new QuerySpec("SELECT id_producto, codigo_barras, nombre, fecha_vencimiento FROM vista_productos_vencidos"),
+                row -> Map.of(
                         "id_producto", row[0],
                         "codigo_barras", row[1],
                         "nombre", row[2],
                         "fecha_vencimiento", row[3]
-                ))
-                .toList();
+                )
+        );
     }
 
     private Reporte saveReport(Reporte.TipoReporte tipoReporte,
@@ -189,6 +196,12 @@ public class ReporteService {
         return query.getResultList();
     }
 
+    private <T> List<T> mapNativeQuery(QuerySpec querySpec, Function<Object[], T> mapper) {
+        return executeNativeQuery(querySpec.sql(), querySpec.parameters()).stream()
+                .map(mapper)
+                .toList();
+    }
+
     private Usuario resolveUsuario(Integer usuarioId) {
         return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + usuarioId));
@@ -199,7 +212,7 @@ public class ReporteService {
                 agrupacion,
                 year,
                 "COALESCE(SUM(p.total), 0.00)",
-                " FROM pedidos p WHERE p.estado = 'completado'"
+                SALES_SOURCE
         );
     }
 
@@ -208,134 +221,149 @@ public class ReporteService {
                 agrupacion,
                 year,
                 "COALESCE(SUM(dp.subtotal - (dp.cantidad * pr.precio_compra)), 0.00)",
-                " FROM pedidos p" +
-                        " JOIN detalle_pedidos dp ON p.id_pedido = dp.id_pedido" +
-                        " JOIN productos pr ON dp.id_producto = pr.id_producto" +
-                        " WHERE p.estado = 'completado'"
+                GAINS_SOURCE
         );
     }
 
     private QuerySpec buildPeriodSummaryQuery(AgrupacionPeriodo agrupacion, Integer year, String valueExpression, String fromClause) {
-        String dateColumn = "p.fecha_pedido";
         List<Object> parameters = new ArrayList<>();
-        String selectClause;
-        String groupByClause;
-        String orderByClause;
         String filterClause = "";
 
-        switch (agrupacion) {
-            case DIA -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "DAYOFYEAR(" + dateColumn + ") AS periodo, " +
-                        "DATE_FORMAT(" + dateColumn + ", '%d/%m/%Y') AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), DAYOFYEAR(" + dateColumn + "), DATE(" + dateColumn + "), " +
-                        "DATE_FORMAT(" + dateColumn + ", '%d/%m/%Y')";
-                orderByClause = " ORDER BY DATE(" + dateColumn + ") ASC";
-            }
-            case MES -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "MONTH(" + dateColumn + ") AS periodo, " +
-                        "CONCAT(LPAD(MONTH(" + dateColumn + "), 2, '0'), '/', YEAR(" + dateColumn + ")) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), MONTH(" + dateColumn + "), " +
-                        "CONCAT(LPAD(MONTH(" + dateColumn + "), 2, '0'), '/', YEAR(" + dateColumn + "))";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC, MONTH(" + dateColumn + ") ASC";
-            }
-            case ANIO -> {
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "YEAR(" + dateColumn + ") AS periodo, " +
-                        "CAST(YEAR(" + dateColumn + ") AS CHAR) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), CAST(YEAR(" + dateColumn + ") AS CHAR)";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC";
-            }
-            case BIMESTRAL -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "CEIL(MONTH(" + dateColumn + ") / 2.0) AS periodo, " +
-                        "CONCAT('Bimestre ', CEIL(MONTH(" + dateColumn + ") / 2.0), ' - ', YEAR(" + dateColumn + ")) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), CEIL(MONTH(" + dateColumn + ") / 2.0), " +
-                        "CONCAT('Bimestre ', CEIL(MONTH(" + dateColumn + ") / 2.0), ' - ', YEAR(" + dateColumn + "))";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC, CEIL(MONTH(" + dateColumn + ") / 2.0) ASC";
-            }
-            case TRIMESTRAL -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "QUARTER(" + dateColumn + ") AS periodo, " +
-                        "CONCAT('Trimestre ', QUARTER(" + dateColumn + "), ' - ', YEAR(" + dateColumn + ")) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), QUARTER(" + dateColumn + "), " +
-                        "CONCAT('Trimestre ', QUARTER(" + dateColumn + "), ' - ', YEAR(" + dateColumn + "))";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC, QUARTER(" + dateColumn + ") ASC";
-            }
-            case SEMESTRAL -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "CASE WHEN MONTH(" + dateColumn + ") <= 6 THEN 1 ELSE 2 END AS periodo, " +
-                        "CONCAT('Semestre ', CASE WHEN MONTH(" + dateColumn + ") <= 6 THEN 1 ELSE 2 END, ' - ', YEAR(" + dateColumn + ")) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), CASE WHEN MONTH(" + dateColumn + ") <= 6 THEN 1 ELSE 2 END, " +
-                        "CONCAT('Semestre ', CASE WHEN MONTH(" + dateColumn + ") <= 6 THEN 1 ELSE 2 END, ' - ', YEAR(" + dateColumn + "))";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC, CASE WHEN MONTH(" + dateColumn + ") <= 6 THEN 1 ELSE 2 END ASC";
-            }
-            case ANUAL_CONSOLIDADO -> {
-                requireYear(year, agrupacion);
-                filterClause = " AND YEAR(" + dateColumn + ") = ?1";
-                parameters.add(year);
-                selectClause = "SELECT YEAR(" + dateColumn + ") AS anio, " +
-                        "1 AS periodo, " +
-                        "CONCAT('Anual consolidado ', YEAR(" + dateColumn + ")) AS etiqueta, " +
-                        valueExpression + " AS valor";
-                groupByClause = " GROUP BY YEAR(" + dateColumn + "), CONCAT('Anual consolidado ', YEAR(" + dateColumn + "))";
-                orderByClause = " ORDER BY YEAR(" + dateColumn + ") ASC";
-            }
-            default -> throw new BadRequestException("Agrupacion de reporte no soportada");
+        if (agrupacion.requiresYear()) {
+            agrupacion.requireYear(year);
+            filterClause = " AND YEAR(" + PEDIDO_DATE_COLUMN + ") = ?1";
+            parameters.add(year);
         }
 
-        String sql = selectClause + fromClause + filterClause + groupByClause + orderByClause;
+        String selectClause = "SELECT YEAR(" + PEDIDO_DATE_COLUMN + ") AS anio, " +
+                agrupacion.periodExpression(PEDIDO_DATE_COLUMN) + " AS periodo, " +
+                agrupacion.labelExpression(PEDIDO_DATE_COLUMN) + " AS etiqueta, " +
+                valueExpression + " AS valor";
+        String sql = selectClause
+                + fromClause
+                + filterClause
+                + " GROUP BY " + String.join(", ", agrupacion.groupByExpressions(PEDIDO_DATE_COLUMN))
+                + " ORDER BY " + String.join(", ", agrupacion.orderByExpressions(PEDIDO_DATE_COLUMN));
         return new QuerySpec(sql, parameters.toArray());
     }
 
-    private void requireYear(Integer year, AgrupacionPeriodo agrupacion) {
-        if (year == null) {
-            throw new BadRequestException("El parametro year es obligatorio para la agrupacion " + agrupacion.value());
+    private record QuerySpec(String sql, Object[] parameters) {
+        private QuerySpec(String sql) {
+            this(sql, new Object[0]);
         }
     }
 
-    private record QuerySpec(String sql, Object[] parameters) {
-    }
-
     public enum AgrupacionPeriodo {
-        DIA("dia"),
-        MES("mes"),
-        ANIO("anio"),
-        BIMESTRAL("bimestral"),
-        TRIMESTRAL("trimestral"),
-        SEMESTRAL("semestral"),
-        ANUAL_CONSOLIDADO("anual_consolidado");
+        DIA(
+                "dia",
+                true,
+                "DAYOFYEAR({d})",
+                "DATE_FORMAT({d}, '%d/%m/%Y')",
+                List.of("YEAR({d})", "DAYOFYEAR({d})", "DATE({d})", "DATE_FORMAT({d}, '%d/%m/%Y')"),
+                List.of("DATE({d}) ASC")
+        ),
+        MES(
+                "mes",
+                true,
+                "MONTH({d})",
+                "CONCAT(LPAD(MONTH({d}), 2, '0'), '/', YEAR({d}))",
+                List.of("YEAR({d})", "MONTH({d})", "CONCAT(LPAD(MONTH({d}), 2, '0'), '/', YEAR({d}))"),
+                List.of("YEAR({d}) ASC", "MONTH({d}) ASC")
+        ),
+        ANIO(
+                "anio",
+                false,
+                "YEAR({d})",
+                "CAST(YEAR({d}) AS CHAR)",
+                List.of("YEAR({d})", "CAST(YEAR({d}) AS CHAR)"),
+                List.of("YEAR({d}) ASC")
+        ),
+        BIMESTRAL(
+                "bimestral",
+                true,
+                "CEIL(MONTH({d}) / 2.0)",
+                "CONCAT('Bimestre ', CEIL(MONTH({d}) / 2.0), ' - ', YEAR({d}))",
+                List.of("YEAR({d})", "CEIL(MONTH({d}) / 2.0)", "CONCAT('Bimestre ', CEIL(MONTH({d}) / 2.0), ' - ', YEAR({d}))"),
+                List.of("YEAR({d}) ASC", "CEIL(MONTH({d}) / 2.0) ASC")
+        ),
+        TRIMESTRAL(
+                "trimestral",
+                true,
+                "QUARTER({d})",
+                "CONCAT('Trimestre ', QUARTER({d}), ' - ', YEAR({d}))",
+                List.of("YEAR({d})", "QUARTER({d})", "CONCAT('Trimestre ', QUARTER({d}), ' - ', YEAR({d}))"),
+                List.of("YEAR({d}) ASC", "QUARTER({d}) ASC")
+        ),
+        SEMESTRAL(
+                "semestral",
+                true,
+                "CASE WHEN MONTH({d}) <= 6 THEN 1 ELSE 2 END",
+                "CONCAT('Semestre ', CASE WHEN MONTH({d}) <= 6 THEN 1 ELSE 2 END, ' - ', YEAR({d}))",
+                List.of("YEAR({d})", "CASE WHEN MONTH({d}) <= 6 THEN 1 ELSE 2 END", "CONCAT('Semestre ', CASE WHEN MONTH({d}) <= 6 THEN 1 ELSE 2 END, ' - ', YEAR({d}))"),
+                List.of("YEAR({d}) ASC", "CASE WHEN MONTH({d}) <= 6 THEN 1 ELSE 2 END ASC")
+        ),
+        ANUAL_CONSOLIDADO(
+                "anual_consolidado",
+                true,
+                "1",
+                "CONCAT('Anual consolidado ', YEAR({d}))",
+                List.of("YEAR({d})", "CONCAT('Anual consolidado ', YEAR({d}))"),
+                List.of("YEAR({d}) ASC")
+        );
 
         private final String value;
+        private final boolean requiresYear;
+        private final String periodExpressionTemplate;
+        private final String labelExpressionTemplate;
+        private final List<String> groupByTemplates;
+        private final List<String> orderByTemplates;
 
-        AgrupacionPeriodo(String value) {
+        AgrupacionPeriodo(String value,
+                          boolean requiresYear,
+                          String periodExpressionTemplate,
+                          String labelExpressionTemplate,
+                          List<String> groupByTemplates,
+                          List<String> orderByTemplates) {
             this.value = value;
+            this.requiresYear = requiresYear;
+            this.periodExpressionTemplate = periodExpressionTemplate;
+            this.labelExpressionTemplate = labelExpressionTemplate;
+            this.groupByTemplates = groupByTemplates;
+            this.orderByTemplates = orderByTemplates;
         }
 
         public String value() {
             return value;
+        }
+
+        public boolean requiresYear() {
+            return requiresYear;
+        }
+
+        public String periodExpression(String dateColumn) {
+            return applyDateColumn(periodExpressionTemplate, dateColumn);
+        }
+
+        public String labelExpression(String dateColumn) {
+            return applyDateColumn(labelExpressionTemplate, dateColumn);
+        }
+
+        public List<String> groupByExpressions(String dateColumn) {
+            return groupByTemplates.stream()
+                    .map(template -> applyDateColumn(template, dateColumn))
+                    .toList();
+        }
+
+        public List<String> orderByExpressions(String dateColumn) {
+            return orderByTemplates.stream()
+                    .map(template -> applyDateColumn(template, dateColumn))
+                    .toList();
+        }
+
+        public void requireYear(Integer year) {
+            if (requiresYear && year == null) {
+                throw new BadRequestException("El parametro year es obligatorio para la agrupacion " + value);
+            }
         }
 
         public static AgrupacionPeriodo from(String rawValue) {
@@ -350,6 +378,10 @@ public class ReporteService {
             }
 
             throw new BadRequestException("Agrupacion de reporte invalida: " + rawValue);
+        }
+
+        private static String applyDateColumn(String template, String dateColumn) {
+            return template.replace("{d}", dateColumn);
         }
     }
 }
