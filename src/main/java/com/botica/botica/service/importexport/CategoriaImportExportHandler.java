@@ -33,7 +33,7 @@ public class CategoriaImportExportHandler extends AbstractImportExportHandler {
 
     @Override
     public List<String> headers() {
-        return List.of("id_categoria", "nombre", "descripcion");
+        return List.of("nombre", "descripcion");
     }
 
     @Override
@@ -41,7 +41,6 @@ public class CategoriaImportExportHandler extends AbstractImportExportHandler {
         return categoriaService.findAll().stream()
                 .map(categoria -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_categoria", valueOf(categoria.getIdCategoria()));
                     row.put("nombre", valueOf(categoria.getNombre()));
                     row.put("descripcion", valueOf(categoria.getDescripcion()));
                     return row;

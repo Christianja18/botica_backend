@@ -39,7 +39,7 @@ public class InventarioImportExportHandler extends AbstractImportExportHandler {
 
     @Override
     public List<String> headers() {
-        return List.of("id_inventario", "id_producto", "producto_codigo_barras", "stock_actual", "stock_minimo", "fecha_actualizacion");
+        return List.of("producto_nombre", "producto_codigo_barras", "stock_actual", "stock_minimo", "fecha_actualizacion");
     }
 
     @Override
@@ -47,8 +47,7 @@ public class InventarioImportExportHandler extends AbstractImportExportHandler {
         return inventarioService.findAll().stream()
                 .map(inventario -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_inventario", valueOf(inventario.getIdInventario()));
-                    row.put("id_producto", valueOf(inventario.getProducto() != null ? inventario.getProducto().getIdProducto() : null));
+                    row.put("producto_nombre", valueOf(inventario.getProducto() != null ? inventario.getProducto().getNombre() : null));
                     row.put("producto_codigo_barras", valueOf(inventario.getProducto() != null ? inventario.getProducto().getCodigoBarras() : null));
                     row.put("stock_actual", valueOf(inventario.getStockActual()));
                     row.put("stock_minimo", valueOf(inventario.getStockMinimo()));
@@ -91,7 +90,15 @@ public class InventarioImportExportHandler extends AbstractImportExportHandler {
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con codigo de barras: " + codigoBarras));
         }
 
-        throw new BadRequestException("Debe indicar id_producto o producto_codigo_barras");
+        String nombre = optionalString(row, "producto_nombre");
+        if (nombre != null) {
+            return productoRepository.findAll().stream()
+                    .filter(producto -> producto.getNombre() != null && producto.getNombre().equalsIgnoreCase(nombre))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con nombre: " + nombre));
+        }
+
+        throw new BadRequestException("Debe indicar id_producto, producto_codigo_barras o producto_nombre");
     }
 
     private Inventario resolveInventario(Integer idInventario, Integer productoId) {

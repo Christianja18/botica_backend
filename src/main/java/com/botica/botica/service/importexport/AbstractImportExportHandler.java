@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,26 @@ public abstract class AbstractImportExportHandler implements ImportExportHandler
         } catch (NumberFormatException ex) {
             throw new BadRequestException("El campo " + key + " debe ser un numero decimal valido");
         }
+    }
+
+    protected LocalDateTime optionalDateTime(Map<String, String> row, String key) {
+        String value = optionalString(row, key);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value);
+        } catch (Exception ex) {
+            throw new BadRequestException("El campo " + key + " debe tener un formato de fecha y hora valido");
+        }
+    }
+
+    protected LocalDateTime requiredDateTime(Map<String, String> row, String key) {
+        LocalDateTime value = optionalDateTime(row, key);
+        if (value == null) {
+            throw new BadRequestException("El campo " + key + " es obligatorio");
+        }
+        return value;
     }
 
     protected Boolean optionalBoolean(Map<String, String> row, String key) {

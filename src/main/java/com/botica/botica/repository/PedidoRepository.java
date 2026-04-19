@@ -67,4 +67,20 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             "detalles.producto"
     })
     List<Pedido> findByIdPedidoIn(List<Integer> ids);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "usuario",
+            "detalles",
+            "detalles.producto"
+    })
+    List<Pedido> findByFechaPedido(LocalDateTime fechaPedido);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "usuario",
+            "detalles",
+            "detalles.producto"
+    })
+    List<Pedido> findByFechaPedidoAndUsuarioEmailIgnoreCase(LocalDateTime fechaPedido, String email);
 }

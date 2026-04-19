@@ -1,3 +1,3 @@
-id_proveedor,nombre,ruc,telefono,email,direccion,fecha_creacion
-1,PharmaPlus SAC,20512345678,955111222,ventas@pharmaplus.com,Av. Principal 456 Lima,
-,Laboratorios Andinos,20645678901,966222333,contacto@labandinos.com,Av. Industrial 123 Lima,
+nombre,ruc,telefono,email,direccion,fecha_creacion
+PharmaPlus SAC,20512345678,955111222,ventas@pharmaplus.com,Av. Principal 456 Lima,
+Laboratorios Andinos,20645678901,966222333,contacto@labandinos.com,Av. Industrial 123 Lima,

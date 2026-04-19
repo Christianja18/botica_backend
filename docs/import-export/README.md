@@ -24,8 +24,9 @@ Recursos soportados:
 
 - Los archivos Excel usan las mismas columnas que los CSV de ejemplo.
 - La primera fila siempre es la cabecera.
-- Si una fila incluye el `id_*`, el sistema intenta actualizar ese registro.
-- Si no trae `id_*`, el sistema intenta ubicar el registro por un valor unico del dominio.
+- Las plantillas exportadas priorizan columnas de negocio y descripciones en lugar de IDs tecnicos.
+- Si una fila incluye opcionalmente el `id_*`, el sistema intenta actualizar ese registro.
+- Si no trae `id_*`, el sistema intenta ubicar el registro por un valor unico del dominio o por la combinacion descriptiva correspondiente.
 - Si no existe, inserta uno nuevo.
 
 ## Claves de upsert por recurso
@@ -36,21 +37,23 @@ Recursos soportados:
 - `productos`: `id_producto` o `codigo_barras`
 - `inventario`: `id_inventario` o `id_producto` / `producto_codigo_barras`
 - `boletas`: `id_boleta` o `numero_boleta`
-- `detalles-pedido`: `id_detalle` o combinacion `id_pedido + producto`
+- `detalles-pedido`: `id_detalle` o combinacion `pedido + producto`
 - `usuarios`: `id_usuario` o `email`
 
 ## Resolucion de asociaciones
 
 - `productos`:
   - categoria por `id_categoria` o `categoria_nombre`
-  - proveedor por `id_proveedor` o `proveedor_ruc`
+  - proveedor por `id_proveedor`, `proveedor_ruc` o `proveedor_nombre`
 - `inventario`:
-  - producto por `id_producto` o `producto_codigo_barras`
+  - producto por `id_producto`, `producto_codigo_barras` o `producto_nombre`
 - `boletas`:
-  - pedido por `id_pedido`
+  - pedido por `id_pedido` o por `pedido_fecha` + `pedido_usuario_email`
+  - `pedido_cliente_dni` ayuda a desambiguar cuando hay mas de un pedido posible
 - `detalles-pedido`:
-  - pedido por `id_pedido`
-  - producto por `id_producto` o `producto_codigo_barras`
+  - pedido por `id_pedido` o por `pedido_fecha` + `pedido_usuario_email`
+  - `pedido_cliente_dni` ayuda a desambiguar cuando hay mas de un pedido posible
+  - producto por `id_producto`, `producto_codigo_barras` o `producto_nombre`
 - `usuarios`:
   - rol por `id_rol` o `rol_nombre`
 

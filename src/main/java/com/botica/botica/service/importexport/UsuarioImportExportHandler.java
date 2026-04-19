@@ -39,7 +39,7 @@ public class UsuarioImportExportHandler extends AbstractImportExportHandler {
 
     @Override
     public List<String> headers() {
-        return List.of("id_usuario", "nombre", "apellido", "email", "password", "activo", "id_rol", "rol_nombre", "fecha_creacion");
+        return List.of("nombre", "apellido", "email", "password", "activo", "rol_nombre", "fecha_creacion");
     }
 
     @Override
@@ -47,13 +47,11 @@ public class UsuarioImportExportHandler extends AbstractImportExportHandler {
         return usuarioService.findAll().stream()
                 .map(usuario -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_usuario", valueOf(usuario.getIdUsuario()));
                     row.put("nombre", valueOf(usuario.getNombre()));
                     row.put("apellido", valueOf(usuario.getApellido()));
                     row.put("email", valueOf(usuario.getEmail()));
                     row.put("password", "");
                     row.put("activo", valueOf(usuario.getActivo()));
-                    row.put("id_rol", valueOf(usuario.getRol() != null ? usuario.getRol().getIdRol() : null));
                     row.put("rol_nombre", valueOf(usuario.getRol() != null ? usuario.getRol().getNombre() : null));
                     row.put("fecha_creacion", valueOf(usuario.getFechaCreacion()));
                     return row;

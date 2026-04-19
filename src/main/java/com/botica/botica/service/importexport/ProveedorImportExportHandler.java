@@ -33,7 +33,7 @@ public class ProveedorImportExportHandler extends AbstractImportExportHandler {
 
     @Override
     public List<String> headers() {
-        return List.of("id_proveedor", "nombre", "ruc", "telefono", "email", "direccion", "fecha_creacion");
+        return List.of("nombre", "ruc", "telefono", "email", "direccion", "fecha_creacion");
     }
 
     @Override
@@ -41,7 +41,6 @@ public class ProveedorImportExportHandler extends AbstractImportExportHandler {
         return proveedorService.findAll().stream()
                 .map(proveedor -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_proveedor", valueOf(proveedor.getIdProveedor()));
                     row.put("nombre", valueOf(proveedor.getNombre()));
                     row.put("ruc", valueOf(proveedor.getRuc()));
                     row.put("telefono", valueOf(proveedor.getTelefono()));

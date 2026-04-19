@@ -33,7 +33,7 @@ public class ClienteImportExportHandler extends AbstractImportExportHandler {
 
     @Override
     public List<String> headers() {
-        return List.of("id_cliente", "nombre", "apellido", "dni", "telefono", "email", "fecha_creacion");
+        return List.of("nombre", "apellido", "dni", "telefono", "email", "fecha_creacion");
     }
 
     @Override
@@ -41,7 +41,6 @@ public class ClienteImportExportHandler extends AbstractImportExportHandler {
         return clienteService.findAll().stream()
                 .map(cliente -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_cliente", valueOf(cliente.getIdCliente()));
                     row.put("nombre", valueOf(cliente.getNombre()));
                     row.put("apellido", valueOf(cliente.getApellido()));
                     row.put("dni", valueOf(cliente.getDni()));
@@ -57,8 +56,9 @@ public class ClienteImportExportHandler extends AbstractImportExportHandler {
     protected ImportAction importRow(Map<String, String> row) {
         Integer idCliente = optionalInteger(row, "id_cliente");
         String dni = optionalString(row, "dni");
+        String email = optionalString(row, "email");
 
-        Cliente cliente = resolveCliente(idCliente, dni);
+        Cliente cliente = resolveCliente(idCliente, dni, email);
         boolean updating = cliente != null;
         if (!updating) {
             cliente = new Cliente();
@@ -87,12 +87,15 @@ public class ClienteImportExportHandler extends AbstractImportExportHandler {
         return updating ? ImportAction.UPDATED : ImportAction.INSERTED;
     }
 
-    private Cliente resolveCliente(Integer idCliente, String dni) {
+    private Cliente resolveCliente(Integer idCliente, String dni, String email) {
         if (idCliente != null) {
             return clienteService.findById(idCliente);
         }
         if (dni != null) {
             return clienteRepository.findByDni(dni).orElse(null);
+        }
+        if (email != null) {
+            return clienteRepository.findByEmail(email).orElse(null);
         }
         return null;
     }

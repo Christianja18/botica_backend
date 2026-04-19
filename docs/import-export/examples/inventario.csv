@@ -1,3 +1,3 @@
-id_inventario,id_producto,producto_codigo_barras,stock_actual,stock_minimo,fecha_actualizacion
-1,,,140,25,
-,,7751234567999,60,15,
+producto_nombre,producto_codigo_barras,stock_actual,stock_minimo,fecha_actualizacion
+Paracetamol 500mg,7751234567890,140,25,
+Amoxicilina 500mg,7751234567999,60,15,

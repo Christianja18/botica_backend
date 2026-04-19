@@ -45,15 +45,13 @@ public class ProductoImportExportHandler extends AbstractImportExportHandler {
     @Override
     public List<String> headers() {
         return List.of(
-                "id_producto",
                 "nombre",
                 "codigo_barras",
                 "descripcion",
                 "precio_venta",
                 "precio_compra",
-                "id_categoria",
                 "categoria_nombre",
-                "id_proveedor",
+                "proveedor_nombre",
                 "proveedor_ruc",
                 "requiere_receta",
                 "fecha_vencimiento",
@@ -66,15 +64,13 @@ public class ProductoImportExportHandler extends AbstractImportExportHandler {
         return productoService.findAll().stream()
                 .map(producto -> {
                     Map<String, String> row = new LinkedHashMap<>();
-                    row.put("id_producto", valueOf(producto.getIdProducto()));
                     row.put("nombre", valueOf(producto.getNombre()));
                     row.put("codigo_barras", valueOf(producto.getCodigoBarras()));
                     row.put("descripcion", valueOf(producto.getDescripcion()));
                     row.put("precio_venta", valueOf(producto.getPrecioVenta()));
                     row.put("precio_compra", valueOf(producto.getPrecioCompra()));
-                    row.put("id_categoria", valueOf(producto.getCategoria() != null ? producto.getCategoria().getIdCategoria() : null));
                     row.put("categoria_nombre", valueOf(producto.getCategoria() != null ? producto.getCategoria().getNombre() : null));
-                    row.put("id_proveedor", valueOf(producto.getProveedor() != null ? producto.getProveedor().getIdProveedor() : null));
+                    row.put("proveedor_nombre", valueOf(producto.getProveedor() != null ? producto.getProveedor().getNombre() : null));
                     row.put("proveedor_ruc", valueOf(producto.getProveedor() != null ? producto.getProveedor().getRuc() : null));
                     row.put("requiere_receta", valueOf(producto.getRequiereReceta()));
                     row.put("fecha_vencimiento", valueOf(producto.getFechaVencimiento()));
@@ -150,6 +146,14 @@ public class ProductoImportExportHandler extends AbstractImportExportHandler {
                     .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con RUC: " + ruc));
         }
 
-        throw new BadRequestException("Debe indicar id_proveedor o proveedor_ruc");
+        String nombre = optionalString(row, "proveedor_nombre");
+        if (nombre != null) {
+            return proveedorRepository.findAll().stream()
+                    .filter(proveedor -> proveedor.getNombre() != null && proveedor.getNombre().equalsIgnoreCase(nombre))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con nombre: " + nombre));
+        }
+
+        throw new BadRequestException("Debe indicar id_proveedor, proveedor_ruc o proveedor_nombre");
     }
 }
