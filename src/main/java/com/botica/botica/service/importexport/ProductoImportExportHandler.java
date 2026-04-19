@@ -8,7 +8,6 @@ import com.botica.botica.exception.BadRequestException;
 import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.CategoriaRepository;
 import com.botica.botica.repository.ProductoRepository;
-import com.botica.botica.repository.ProveedorRepository;
 import com.botica.botica.service.ProductoService;
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
@@ -23,18 +22,18 @@ public class ProductoImportExportHandler extends AbstractImportExportHandler {
     private final ProductoService productoService;
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
-    private final ProveedorRepository proveedorRepository;
+    private final ImportExportLookupService lookupService;
 
     public ProductoImportExportHandler(Validator validator,
                                        ProductoService productoService,
                                        ProductoRepository productoRepository,
                                        CategoriaRepository categoriaRepository,
-                                       ProveedorRepository proveedorRepository) {
+                                       ImportExportLookupService lookupService) {
         super(validator);
         this.productoService = productoService;
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
-        this.proveedorRepository = proveedorRepository;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -134,26 +133,10 @@ public class ProductoImportExportHandler extends AbstractImportExportHandler {
     }
 
     private Proveedor resolveProveedor(Map<String, String> row) {
-        Integer idProveedor = optionalInteger(row, "id_proveedor");
-        if (idProveedor != null) {
-            return proveedorRepository.findById(idProveedor)
-                    .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con id: " + idProveedor));
-        }
-
-        String ruc = optionalString(row, "proveedor_ruc");
-        if (ruc != null) {
-            return proveedorRepository.findByRuc(ruc)
-                    .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con RUC: " + ruc));
-        }
-
-        String nombre = optionalString(row, "proveedor_nombre");
-        if (nombre != null) {
-            return proveedorRepository.findAll().stream()
-                    .filter(proveedor -> proveedor.getNombre() != null && proveedor.getNombre().equalsIgnoreCase(nombre))
-                    .findFirst()
-                    .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con nombre: " + nombre));
-        }
-
-        throw new BadRequestException("Debe indicar id_proveedor, proveedor_ruc o proveedor_nombre");
+        return lookupService.resolveProveedor(
+                optionalInteger(row, "id_proveedor"),
+                optionalString(row, "proveedor_ruc"),
+                optionalString(row, "proveedor_nombre")
+        );
     }
 }

@@ -3,10 +3,7 @@ package com.botica.botica.service.importexport;
 import com.botica.botica.dto.InventarioDTO;
 import com.botica.botica.entity.Inventario;
 import com.botica.botica.entity.Producto;
-import com.botica.botica.exception.BadRequestException;
-import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.InventarioRepository;
-import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.service.InventarioService;
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
@@ -20,16 +17,16 @@ public class InventarioImportExportHandler extends AbstractImportExportHandler {
 
     private final InventarioService inventarioService;
     private final InventarioRepository inventarioRepository;
-    private final ProductoRepository productoRepository;
+    private final ImportExportLookupService lookupService;
 
     public InventarioImportExportHandler(Validator validator,
                                          InventarioService inventarioService,
                                          InventarioRepository inventarioRepository,
-                                         ProductoRepository productoRepository) {
+                                         ImportExportLookupService lookupService) {
         super(validator);
         this.inventarioService = inventarioService;
         this.inventarioRepository = inventarioRepository;
-        this.productoRepository = productoRepository;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -78,27 +75,11 @@ public class InventarioImportExportHandler extends AbstractImportExportHandler {
     }
 
     private Producto resolveProducto(Map<String, String> row) {
-        Integer idProducto = optionalInteger(row, "id_producto");
-        if (idProducto != null) {
-            return productoRepository.findById(idProducto)
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + idProducto));
-        }
-
-        String codigoBarras = optionalString(row, "producto_codigo_barras");
-        if (codigoBarras != null) {
-            return productoRepository.findByCodigoBarras(codigoBarras)
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con codigo de barras: " + codigoBarras));
-        }
-
-        String nombre = optionalString(row, "producto_nombre");
-        if (nombre != null) {
-            return productoRepository.findAll().stream()
-                    .filter(producto -> producto.getNombre() != null && producto.getNombre().equalsIgnoreCase(nombre))
-                    .findFirst()
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con nombre: " + nombre));
-        }
-
-        throw new BadRequestException("Debe indicar id_producto, producto_codigo_barras o producto_nombre");
+        return lookupService.resolveProducto(
+                optionalInteger(row, "id_producto"),
+                optionalString(row, "producto_codigo_barras"),
+                optionalString(row, "producto_nombre")
+        );
     }
 
     private Inventario resolveInventario(Integer idInventario, Integer productoId) {

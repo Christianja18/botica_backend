@@ -2,18 +2,13 @@ package com.botica.botica.service.importexport;
 
 import com.botica.botica.dto.DetallePedidoDTO;
 import com.botica.botica.entity.DetallePedido;
-import com.botica.botica.entity.Pedido;
 import com.botica.botica.entity.Producto;
 import com.botica.botica.exception.BadRequestException;
-import com.botica.botica.exception.ResourceNotFoundException;
 import com.botica.botica.repository.DetallePedidoRepository;
-import com.botica.botica.repository.PedidoRepository;
-import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.service.DetallePedidoService;
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,19 +18,16 @@ public class DetallePedidoImportExportHandler extends AbstractImportExportHandle
 
     private final DetallePedidoService detallePedidoService;
     private final DetallePedidoRepository detallePedidoRepository;
-    private final PedidoRepository pedidoRepository;
-    private final ProductoRepository productoRepository;
+    private final ImportExportLookupService lookupService;
 
     public DetallePedidoImportExportHandler(Validator validator,
                                             DetallePedidoService detallePedidoService,
                                             DetallePedidoRepository detallePedidoRepository,
-                                            PedidoRepository pedidoRepository,
-                                            ProductoRepository productoRepository) {
+                                            ImportExportLookupService lookupService) {
         super(validator);
         this.detallePedidoService = detallePedidoService;
         this.detallePedidoRepository = detallePedidoRepository;
-        this.pedidoRepository = pedidoRepository;
-        this.productoRepository = productoRepository;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -66,13 +58,13 @@ public class DetallePedidoImportExportHandler extends AbstractImportExportHandle
                     Map<String, String> row = new LinkedHashMap<>();
                     row.put("pedido_fecha", valueOf(detalle.getPedido() != null ? detalle.getPedido().getFechaPedido() : null));
                     row.put("pedido_cliente", valueOf(detalle.getPedido() != null && detalle.getPedido().getCliente() != null
-                            ? buildFullName(detalle.getPedido().getCliente().getNombre(), detalle.getPedido().getCliente().getApellido())
+                            ? lookupService.buildFullName(detalle.getPedido().getCliente().getNombre(), detalle.getPedido().getCliente().getApellido())
                             : null));
                     row.put("pedido_cliente_dni", valueOf(detalle.getPedido() != null && detalle.getPedido().getCliente() != null
                             ? detalle.getPedido().getCliente().getDni()
                             : null));
                     row.put("pedido_usuario", valueOf(detalle.getPedido() != null && detalle.getPedido().getUsuario() != null
-                            ? buildFullName(detalle.getPedido().getUsuario().getNombre(), detalle.getPedido().getUsuario().getApellido())
+                            ? lookupService.buildFullName(detalle.getPedido().getUsuario().getNombre(), detalle.getPedido().getUsuario().getApellido())
                             : null));
                     row.put("pedido_usuario_email", valueOf(detalle.getPedido() != null && detalle.getPedido().getUsuario() != null
                             ? detalle.getPedido().getUsuario().getEmail()
@@ -110,62 +102,20 @@ public class DetallePedidoImportExportHandler extends AbstractImportExportHandle
     }
 
     private Producto resolveProducto(Map<String, String> row) {
-        Integer idProducto = optionalInteger(row, "id_producto");
-        if (idProducto != null) {
-            return productoRepository.findById(idProducto)
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + idProducto));
-        }
-
-        String codigoBarras = optionalString(row, "producto_codigo_barras");
-        if (codigoBarras != null) {
-            return productoRepository.findByCodigoBarras(codigoBarras)
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con codigo de barras: " + codigoBarras));
-        }
-
-        String nombre = optionalString(row, "producto_nombre");
-        if (nombre != null) {
-            return productoRepository.findAll().stream()
-                    .filter(producto -> producto.getNombre() != null && producto.getNombre().equalsIgnoreCase(nombre))
-                    .findFirst()
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con nombre: " + nombre));
-        }
-
-        throw new BadRequestException("Debe indicar id_producto, producto_codigo_barras o producto_nombre");
+        return lookupService.resolveProducto(
+                optionalInteger(row, "id_producto"),
+                optionalString(row, "producto_codigo_barras"),
+                optionalString(row, "producto_nombre")
+        );
     }
 
     private Integer resolvePedidoId(Map<String, String> row) {
-        Integer idPedido = optionalInteger(row, "id_pedido");
-        if (idPedido != null) {
-            return idPedido;
-        }
-
-        LocalDateTime fechaPedido = requiredDateTime(row, "pedido_fecha");
-        String usuarioEmail = optionalString(row, "pedido_usuario_email");
-        String clienteDni = optionalString(row, "pedido_cliente_dni");
-
-        List<Pedido> matches = usuarioEmail != null
-                ? pedidoRepository.findByFechaPedidoAndUsuarioEmailIgnoreCase(fechaPedido, usuarioEmail)
-                : pedidoRepository.findByFechaPedido(fechaPedido);
-
-        if (clienteDni != null) {
-            matches = matches.stream()
-                    .filter(pedido -> pedido.getCliente() != null && clienteDni.equals(pedido.getCliente().getDni()))
-                    .toList();
-        }
-
-        if (matches.isEmpty()) {
-            throw new ResourceNotFoundException("Pedido no encontrado con los datos proporcionados");
-        }
-        if (matches.size() > 1) {
-            throw new BadRequestException("Existe mas de un pedido con los datos proporcionados. Use id_pedido o agregue pedido_cliente_dni/pedido_usuario_email");
-        }
-        return matches.get(0).getIdPedido();
-    }
-
-    private String buildFullName(String nombre, String apellido) {
-        String safeNombre = nombre == null ? "" : nombre.trim();
-        String safeApellido = apellido == null ? "" : apellido.trim();
-        return (safeNombre + " " + safeApellido).trim();
+        return lookupService.resolvePedidoId(
+                optionalInteger(row, "id_pedido"),
+                requiredDateTime(row, "pedido_fecha"),
+                optionalString(row, "pedido_usuario_email"),
+                optionalString(row, "pedido_cliente_dni")
+        );
     }
 
     private DetallePedido resolveDetalle(Integer idDetalle, Integer idPedido, Integer idProducto) {
