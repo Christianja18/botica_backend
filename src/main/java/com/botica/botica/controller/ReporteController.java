@@ -2,6 +2,7 @@ package com.botica.botica.controller;
 
 import com.botica.botica.dto.PageResponseDTO;
 import com.botica.botica.dto.ReporteDTO;
+import com.botica.botica.dto.ResumenPeriodoDTO;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.mapper.ReporteMapper;
 import com.botica.botica.service.ReporteService;
@@ -93,16 +94,20 @@ public class ReporteController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/ventas-por-mes/{year}")
-    @Operation(summary = "Obtener ventas por mes", description = "Retorna el resumen mensual de ventas para un anio especifico")
-    public ResponseEntity<List<Map<String, Object>>> getVentasPorMes(@PathVariable int year) {
-        return ResponseEntity.ok(reporteService.getVentasPorMes(year));
+    @GetMapping("/ventas-resumen")
+    @Operation(summary = "Obtener resumen de ventas por periodo", description = "Retorna el resumen de ventas agrupado por dia, mes, anio, bimestral, trimestral, semestral o anual consolidado")
+    public ResponseEntity<List<ResumenPeriodoDTO>> getVentasResumen(
+            @RequestParam String agrupacion,
+            @RequestParam(required = false) Integer year) {
+        return ResponseEntity.ok(reporteService.getVentasResumen(agrupacion, year));
     }
 
-    @GetMapping("/ganancias-por-mes/{year}")
-    @Operation(summary = "Obtener ganancias por mes", description = "Retorna el resumen mensual de ganancias para un anio especifico")
-    public ResponseEntity<List<Map<String, Object>>> getGananciasPorMes(@PathVariable int year) {
-        return ResponseEntity.ok(reporteService.getGananciasPorMes(year));
+    @GetMapping("/ganancias-resumen")
+    @Operation(summary = "Obtener resumen de ganancias por periodo", description = "Retorna el resumen de ganancias agrupado por dia, mes, anio, bimestral, trimestral, semestral o anual consolidado")
+    public ResponseEntity<List<ResumenPeriodoDTO>> getGananciasResumen(
+            @RequestParam String agrupacion,
+            @RequestParam(required = false) Integer year) {
+        return ResponseEntity.ok(reporteService.getGananciasResumen(agrupacion, year));
     }
 
     @GetMapping("/inventario-bajo")

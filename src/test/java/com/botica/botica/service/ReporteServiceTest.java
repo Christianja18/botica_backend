@@ -1,5 +1,6 @@
 package com.botica.botica.service;
 
+import com.botica.botica.dto.ResumenPeriodoDTO;
 import com.botica.botica.entity.Pedido;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.entity.Usuario;
@@ -25,7 +26,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,12 +89,18 @@ class ReporteServiceTest {
     @Test
     void testSave() {
         Reporte reporte = new Reporte();
-        when(reporteRepository.save(reporte)).thenReturn(reporte);
+        Reporte saved = new Reporte();
+        saved.setIdReporte(1);
+
+        when(reporteRepository.save(reporte)).thenReturn(saved);
+        when(reporteRepository.findById(1)).thenReturn(Optional.of(saved));
 
         Reporte result = reporteService.save(reporte);
 
         assertNotNull(result);
+        assertEquals(1, result.getIdReporte());
         verify(reporteRepository).save(reporte);
+        verify(reporteRepository).findById(1);
     }
 
     @Test
@@ -108,7 +117,19 @@ class ReporteServiceTest {
         when(pedidoRepository.findByFechaPedidoBetweenAndEstado(inicio, fin, Pedido.EstadoPedido.completado))
                 .thenReturn(List.of(pedido));
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"total\":150.50}");
-        when(reporteRepository.save(any(Reporte.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(reporteRepository.save(any(Reporte.class))).thenAnswer(invocation -> {
+            Reporte saved = invocation.getArgument(0);
+            saved.setIdReporte(1);
+            return saved;
+        });
+        when(reporteRepository.findById(1)).thenAnswer(invocation -> {
+            Reporte persisted = new Reporte();
+            persisted.setIdReporte(1);
+            persisted.setTipoReporte(Reporte.TipoReporte.ventas);
+            persisted.setGeneradoPor(usuario);
+            persisted.setDatos("{\"total\":150.50}");
+            return Optional.of(persisted);
+        });
 
         Reporte result = reporteService.generarReporteVentas(inicio, fin, 1);
 
@@ -137,18 +158,44 @@ class ReporteServiceTest {
     }
 
     @Test
-    void testGetGananciasPorMes() {
-        String sql = "SELECT anio, mes, ganancia FROM vista_ganancias_mensuales WHERE anio = :year";
-        when(entityManager.createNativeQuery(sql)).thenReturn(query);
-        when(query.setParameter("year", 2026)).thenReturn(query);
-        when(query.getResultList()).thenReturn(Collections.singletonList(new Object[]{2026, 4, new BigDecimal("250.00")}));
+    void testGetGananciasResumenMensual() {
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(1, 2026)).thenReturn(query);
+        when(query.getResultList()).thenReturn(Collections.singletonList(new Object[]{2026, 4, "04/2026", new BigDecimal("250.00")}));
 
-        List<Map<String, Object>> result = reporteService.getGananciasPorMes(2026);
+        List<ResumenPeriodoDTO> result = reporteService.getGananciasResumen("mes", 2026);
 
         assertEquals(1, result.size());
-        assertEquals(2026, result.get(0).get("anio"));
-        assertEquals(4, result.get(0).get("mes"));
-        assertEquals(new BigDecimal("250.00"), result.get(0).get("ganancia"));
-        verify(query).setParameter(eq("year"), eq(2026));
+        assertEquals(2026, result.get(0).anio());
+        assertEquals(4, result.get(0).periodo());
+        assertEquals("04/2026", result.get(0).etiqueta());
+        assertEquals(new BigDecimal("250.00"), result.get(0).valor());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(entityManager).createNativeQuery(sqlCaptor.capture());
+        String sql = sqlCaptor.getValue();
+        assertTrue(sql.contains("MONTH(p.fecha_pedido)"));
+        assertTrue(sql.contains("SUM(dp.subtotal - (dp.cantidad * pr.precio_compra))"));
+        verify(query).setParameter(eq(1), eq(2026));
+    }
+
+    @Test
+    void testGetVentasResumenAnualGeneraGroupByCompatibleConOnlyFullGroupBy() {
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.getResultList()).thenReturn(Collections.singletonList(new Object[]{2026, 2026, "2026", new BigDecimal("500.00")}));
+
+        List<ResumenPeriodoDTO> result = reporteService.getVentasResumen("anio", null);
+
+        assertEquals(1, result.size());
+        assertEquals(2026, result.get(0).anio());
+        assertEquals(2026, result.get(0).periodo());
+        assertEquals("2026", result.get(0).etiqueta());
+        assertEquals(new BigDecimal("500.00"), result.get(0).valor());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(entityManager).createNativeQuery(sqlCaptor.capture());
+        String sql = sqlCaptor.getValue();
+        assertTrue(sql.contains("CAST(YEAR(p.fecha_pedido) AS CHAR)"));
+        assertTrue(sql.contains("GROUP BY YEAR(p.fecha_pedido), CAST(YEAR(p.fecha_pedido) AS CHAR)"));
     }
 }
