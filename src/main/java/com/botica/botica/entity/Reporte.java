@@ -44,9 +44,6 @@ public class Reporte {
     @Column(columnDefinition = "JSON")
     private String datos;  // JSON string
 
-    @Column(length = 500)
-    private String archivoPath;
-
     public enum TipoReporte {
         ventas, inventario, pedidos, clientes
     }

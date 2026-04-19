@@ -21,7 +21,6 @@ public class ReporteMapper {
                 .idReporte(reporte.getIdReporte())
                 .tipoReporte(reporte.getTipoReporte().toString())
                 .datos(reporte.getDatos())
-                .archivoPath(reporte.getArchivoPath())
                 .build();
 
         if (reporte.getFechaGeneracion() != null) {
@@ -56,7 +55,6 @@ public class ReporteMapper {
         }
 
         reporte.setDatos(dto.getDatos());
-        reporte.setArchivoPath(dto.getArchivoPath());
 
         if (reporte.getFechaGeneracion() == null) {
             reporte.setFechaGeneracion(LocalDateTime.now());
@@ -75,7 +73,6 @@ public class ReporteMapper {
         }
 
         reporte.setDatos(dto.getDatos());
-        reporte.setArchivoPath(dto.getArchivoPath());
 
         return reporte;
     }

@@ -2,7 +2,6 @@ package com.botica.botica.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,9 +30,6 @@ public class ReporteDTO {
     private UsuarioResumenDTO usuarioGenerador;
 
     private String datos;
-
-    @Size(max = 500, message = "La ruta del archivo no puede exceder 500 caracteres")
-    private String archivoPath;
 
     @Data
     @NoArgsConstructor

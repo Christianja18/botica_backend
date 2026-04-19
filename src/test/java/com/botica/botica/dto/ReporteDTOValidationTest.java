@@ -9,7 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class ReporteDTOValidationTest {
@@ -24,33 +25,25 @@ class ReporteDTOValidationTest {
         validReporte = new ReporteDTO();
         validReporte.setTipoReporte("ventas");
         validReporte.setGeneradoPor(1);
-        validReporte.setArchivoPath("/path/to/report.pdf");
     }
 
     @Test
     void validReportePasaValidacion() {
         Set<ConstraintViolation<ReporteDTO>> violations = validator.validate(validReporte);
-        assertTrue(violations.isEmpty(), "Reporte válido no debería tener violaciones");
+        assertTrue(violations.isEmpty(), "Reporte valido no deberia tener violaciones");
     }
 
     @Test
-    void reporteSinTipoNoesValido() {
+    void reporteSinTipoNoEsValido() {
         validReporte.setTipoReporte("");
         Set<ConstraintViolation<ReporteDTO>> violations = validator.validate(validReporte);
-        assertFalse(violations.isEmpty(), "Reporte sin tipo debería fallar");
+        assertFalse(violations.isEmpty(), "Reporte sin tipo deberia fallar");
     }
 
     @Test
-    void reporteSinGeneradoPorNoesValido() {
+    void reporteSinGeneradoPorNoEsValido() {
         validReporte.setGeneradoPor(null);
         Set<ConstraintViolation<ReporteDTO>> violations = validator.validate(validReporte);
-        assertFalse(violations.isEmpty(), "Reporte sin usuario generador debería fallar");
-    }
-
-    @Test
-    void reporteConArchivoPathMuyLargoNoesValido() {
-        validReporte.setArchivoPath("a".repeat(501));
-        Set<ConstraintViolation<ReporteDTO>> violations = validator.validate(validReporte);
-        assertFalse(violations.isEmpty(), "Reporte con archivo path muy largo debería fallar");
+        assertFalse(violations.isEmpty(), "Reporte sin usuario generador deberia fallar");
     }
 }
