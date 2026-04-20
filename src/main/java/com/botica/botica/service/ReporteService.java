@@ -3,6 +3,7 @@ package com.botica.botica.service;
 import com.botica.botica.entity.Pedido;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.entity.Usuario;
+import com.botica.botica.dto.ProductoMasVendidoDTO;
 import com.botica.botica.dto.ResumenPeriodoDTO;
 import com.botica.botica.exception.BadRequestException;
 import com.botica.botica.exception.ResourceNotFoundException;
@@ -145,6 +146,24 @@ public class ReporteService {
                         "codigo_barras", row[1],
                         "nombre", row[2],
                         "fecha_vencimiento", row[3]
+                )
+        );
+    }
+
+    public List<ProductoMasVendidoDTO> getProductosMasVendidos() {
+        return mapNativeQuery(
+                new QuerySpec(
+                        "SELECT id_producto, codigo_barras, nombre, id_categoria, categoria, cantidad_vendida, total_vendido " +
+                                "FROM vista_productos_mas_vendidos"
+                ),
+                row -> new ProductoMasVendidoDTO(
+                        ((Number) row[0]).intValue(),
+                        String.valueOf(row[1]),
+                        String.valueOf(row[2]),
+                        ((Number) row[3]).intValue(),
+                        String.valueOf(row[4]),
+                        ((Number) row[5]).intValue(),
+                        (BigDecimal) row[6]
                 )
         );
     }

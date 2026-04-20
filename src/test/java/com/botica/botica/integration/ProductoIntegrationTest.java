@@ -5,6 +5,8 @@ import com.botica.botica.entity.Producto;
 import com.botica.botica.entity.Proveedor;
 import com.botica.botica.entity.Rol;
 import com.botica.botica.entity.Usuario;
+import com.botica.botica.service.AuthService;
+import com.botica.botica.dto.LoginRequestDTO;
 import com.botica.botica.repository.CategoriaRepository;
 import com.botica.botica.repository.ProductoRepository;
 import com.botica.botica.repository.ProveedorRepository;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,8 +40,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class ProductoIntegrationTest {
 
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
+
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private AuthService authService;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -58,9 +66,10 @@ class ProductoIntegrationTest {
     private Categoria testCategoria;
     private Proveedor testProveedor;
     private Producto testProducto;
+    private String authToken;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         usuarioRepository.deleteAll();
         rolRepository.deleteAll();
         productoRepository.deleteAll();
@@ -81,7 +90,7 @@ class ProductoIntegrationTest {
         testUsuario.setNombre("Juan");
         testUsuario.setApellido("Perez");
         testUsuario.setEmail("juan@botica.com");
-        testUsuario.setPasswordHash("SecurePassword123");
+        testUsuario.setPasswordHash(PASSWORD_ENCODER.encode("SecurePassword123"));
         testUsuario.setActivo(true);
         testUsuario.setRol(testRol);
         usuarioRepository.save(testUsuario);
@@ -109,11 +118,14 @@ class ProductoIntegrationTest {
         testProducto.setProveedor(testProveedor);
         testProducto.setRequiereReceta(false);
         testProducto = productoRepository.save(testProducto);
+
+        authToken = authenticate("juan@botica.com", "SecurePassword123");
     }
 
     @Test
     void testObtenerTodosLosProductos() throws Exception {
         mockMvc.perform(get("/api/productos")
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -126,6 +138,7 @@ class ProductoIntegrationTest {
     @Test
     void testObtenerProductoPorId() throws Exception {
         mockMvc.perform(get("/api/productos/" + testProducto.getIdProducto())
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Paracetamol"))
@@ -136,6 +149,7 @@ class ProductoIntegrationTest {
     @Test
     void testBuscarProductoPorNombre() throws Exception {
         mockMvc.perform(get("/api/productos/buscar/paracetamol")
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -145,6 +159,7 @@ class ProductoIntegrationTest {
     @Test
     void testBuscarProductoPorCodigoBarras() throws Exception {
         mockMvc.perform(get("/api/productos/codigo-barras/" + testProducto.getCodigoBarras())
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.idProducto").value(testProducto.getIdProducto()))
@@ -165,6 +180,7 @@ class ProductoIntegrationTest {
                 + "}";
 
         mockMvc.perform(post("/api/productos")
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nuevoProductoJson))
                 .andExpect(status().isCreated())
@@ -187,11 +203,19 @@ class ProductoIntegrationTest {
                 + "}";
 
         mockMvc.perform(put("/api/productos/" + testProducto.getIdProducto())
+                        .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productoActualizadoJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Paracetamol 500mg"))
                 .andExpect(jsonPath("$.codigoBarras").value("7750000000100"))
                 .andExpect(jsonPath("$.precioVenta").value(6.00));
+    }
+
+    private String authenticate(String email, String password) throws Exception {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setEmail(email);
+        request.setPassword(password);
+        return authService.login(request).getToken();
     }
 }

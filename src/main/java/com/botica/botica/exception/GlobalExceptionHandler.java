@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,37 +18,27 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex) {
         logger.error("Resource not found: {}", ex.getMessage());
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", ex.getMessage());
-        body.put("status", HttpStatus.NOT_FOUND.value());
-        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+        return buildBody(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Object> handleBadRequestException(BadRequestException ex) {
         logger.warn("Bad request: {}", ex.getMessage());
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", ex.getMessage());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return buildBody(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationException(MethodArgumentNotValidException ex) {
         logger.warn("Validation error: {}", ex.getMessage());
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", "Datos de entrada inválidos");
+        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Datos de entrada invalidos");
         body.put("errors", ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> Map.of("field", error.getField(), "message", error.getDefaultMessage()))
                 .toList());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
@@ -55,48 +46,49 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         logger.error("Data integrity violation: {}", ex.getMessage());
         String message = "Error de integridad de datos";
-        if (ex.getMessage().contains("Data too long")) {
-            message = "Los datos proporcionados exceden la longitud permitida para uno o más campos";
-        } else if (ex.getMessage().contains("Duplicate entry")) {
-            message = "Ya existe un registro con los mismos datos únicos";
-        } else if (ex.getMessage().contains("foreign key constraint")) {
-            message = "No se puede realizar la operación debido a restricciones de clave foránea";
+        if (ex.getMessage() != null && ex.getMessage().contains("Data too long")) {
+            message = "Los datos proporcionados exceden la longitud permitida para uno o mas campos";
+        } else if (ex.getMessage() != null && ex.getMessage().contains("Duplicate entry")) {
+            message = "Ya existe un registro con los mismos datos unicos";
+        } else if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("foreign key constraint")) {
+            message = "No se puede realizar la operacion debido a restricciones de clave foranea";
         }
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", message);
-        body.put("details", ex.getMostSpecificCause().getMessage());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return buildBody(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<Object> handleRateLimitExceededException(RateLimitExceededException ex) {
         logger.warn("Rate limit exceeded: {}", ex.getMessage());
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", ex.getMessage());
-        body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
-        return new ResponseEntity<>(body, HttpStatus.TOO_MANY_REQUESTS);
+        return buildBody(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException ex) {
         logger.warn("Unauthorized: {}", ex.getMessage());
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", ex.getMessage());
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+        return buildBody(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Object> handleForbiddenException(ForbiddenException ex) {
+        logger.warn("Forbidden: {}", ex.getMessage());
+        return buildBody(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
         logger.error("Internal server error: {}", ex.getMessage(), ex);
+        return buildBody(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
+    }
+
+    private ResponseEntity<Object> buildBody(HttpStatus status, String message) {
+        return new ResponseEntity<>(baseBody(status, message), status);
+    }
+
+    private Map<String, Object> baseBody(HttpStatus status, String message) {
         Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        body.put("message", "Internal Server Error");
-        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+        body.put("timestamp", LocalDateTime.now().format(DATE_FORMATTER));
+        body.put("message", message);
+        body.put("status", status.value());
+        return body;
     }
 }

@@ -46,37 +46,34 @@ public class AuthService {
 
     public AuthResponseDTO getCurrentSession(String token) {
         AuthSession session = getValidSession(token);
-        Usuario usuario = usuarioRepository.findById(session.getUserId())
-                .orElseThrow(() -> new UnauthorizedException("La sesión ya no es válida"));
+        Usuario usuario = loadActiveUser(session.getUserId());
         return buildResponse(session.getToken(), session.getExpiresAt(), usuario);
+    }
+
+    public Usuario getAuthenticatedUser(String token) {
+        AuthSession session = getValidSession(token);
+        return loadActiveUser(session.getUserId());
     }
 
     public void logout(String token) {
         if (token == null || token.isBlank()) {
-            throw new UnauthorizedException("Token de sesión no proporcionado");
+            throw new UnauthorizedException("Token de sesion no proporcionado");
         }
         sessions.remove(token);
     }
 
     public String extractToken(String authorizationHeader) {
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
-            throw new UnauthorizedException("No se recibió el encabezado Authorization");
+            throw new UnauthorizedException("No se recibio el encabezado Authorization");
         }
         if (!authorizationHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("El formato del token es inválido");
+            throw new UnauthorizedException("El formato del token es invalido");
         }
         return authorizationHeader.substring(7).trim();
     }
 
     private void validateAccess(Usuario usuario, String rawPassword) {
-        if (!Boolean.TRUE.equals(usuario.getActivo())) {
-            throw new UnauthorizedException("El usuario está inactivo");
-        }
-
-        Rol rol = usuario.getRol();
-        if (rol == null || !Boolean.TRUE.equals(rol.getActivo())) {
-            throw new UnauthorizedException("El rol del usuario está inactivo");
-        }
+        validateSessionUser(usuario);
 
         if (!usuarioService.matchesPassword(rawPassword, usuario)) {
             throw new UnauthorizedException("Credenciales inválidas");
@@ -85,20 +82,38 @@ public class AuthService {
 
     private AuthSession getValidSession(String token) {
         if (token == null || token.isBlank()) {
-            throw new UnauthorizedException("Token de sesión no proporcionado");
+            throw new UnauthorizedException("Token de sesion no proporcionado");
         }
 
         AuthSession session = sessions.get(token);
         if (session == null) {
-            throw new UnauthorizedException("La sesión no existe o ya expiró");
+            throw new UnauthorizedException("La sesion no existe o ya expiro");
         }
 
         if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
             sessions.remove(token);
-            throw new UnauthorizedException("La sesión expiró");
+            throw new UnauthorizedException("La sesion expiro");
         }
 
         return session;
+    }
+
+    private Usuario loadActiveUser(Integer userId) {
+        Usuario usuario = usuarioRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("La sesion ya no es valida"));
+        validateSessionUser(usuario);
+        return usuario;
+    }
+
+    private void validateSessionUser(Usuario usuario) {
+        if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            throw new UnauthorizedException("El usuario esta inactivo");
+        }
+
+        Rol rol = usuario.getRol();
+        if (rol == null || !Boolean.TRUE.equals(rol.getActivo())) {
+            throw new UnauthorizedException("El rol del usuario esta inactivo");
+        }
     }
 
     private AuthResponseDTO buildResponse(String token, LocalDateTime expiresAt, Usuario usuario) {

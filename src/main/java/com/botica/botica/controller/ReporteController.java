@@ -1,6 +1,7 @@
 package com.botica.botica.controller;
 
 import com.botica.botica.dto.PageResponseDTO;
+import com.botica.botica.dto.ProductoMasVendidoDTO;
 import com.botica.botica.dto.ReporteDTO;
 import com.botica.botica.dto.ResumenPeriodoDTO;
 import com.botica.botica.entity.Reporte;
@@ -126,5 +127,11 @@ public class ReporteController {
     @Operation(summary = "Obtener productos vencidos", description = "Retorna una lista de productos cuya fecha de vencimiento ya paso")
     public ResponseEntity<List<Map<String, Object>>> getProductosVencidos() {
         return ResponseEntity.ok(reporteService.getProductosVencidos());
+    }
+
+    @GetMapping("/productos-mas-vendidos")
+    @Operation(summary = "Obtener productos mas vendidos", description = "Retorna el ranking de productos mas vendidos basado en pedidos completados")
+    public ResponseEntity<List<ProductoMasVendidoDTO>> getProductosMasVendidos() {
+        return ResponseEntity.ok(reporteService.getProductosMasVendidos());
     }
 }

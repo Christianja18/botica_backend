@@ -1,6 +1,7 @@
 package com.botica.botica.service;
 
 import com.botica.botica.dto.ResumenPeriodoDTO;
+import com.botica.botica.dto.ProductoMasVendidoDTO;
 import com.botica.botica.entity.Pedido;
 import com.botica.botica.entity.Reporte;
 import com.botica.botica.entity.Usuario;
@@ -154,6 +155,25 @@ class ReporteServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("7751234567890", result.get(0).get("codigo_barras"));
+        verify(entityManager).createNativeQuery(sql);
+    }
+
+    @Test
+    void testGetProductosMasVendidos() {
+        String sql = "SELECT id_producto, codigo_barras, nombre, id_categoria, categoria, cantidad_vendida, total_vendido FROM vista_productos_mas_vendidos";
+        when(entityManager.createNativeQuery(sql)).thenReturn(query);
+        when(query.getResultList()).thenReturn(Collections.singletonList(
+                new Object[]{1, "7751234567890", "Paracetamol", 2, "Analgesicos", 14, new BigDecimal("70.00")}
+        ));
+
+        List<ProductoMasVendidoDTO> result = reporteService.getProductosMasVendidos();
+
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).idProducto());
+        assertEquals("Paracetamol", result.get(0).nombre());
+        assertEquals("Analgesicos", result.get(0).categoria());
+        assertEquals(14, result.get(0).cantidadVendida());
+        assertEquals(new BigDecimal("70.00"), result.get(0).totalVendido());
         verify(entityManager).createNativeQuery(sql);
     }
 
