@@ -55,6 +55,12 @@ public class AuthAuthorizationInterceptor implements HandlerInterceptor {
             return;
         }
 
+        if (requestPath.startsWith("/api/backups")) {
+            require(Boolean.TRUE.equals(rol.getPuedeAdministrarUsuarios()),
+                    "No tienes permisos para generar respaldos de la base de datos");
+            return;
+        }
+
         if (requestPath.startsWith("/api/reportes")) {
             require(Boolean.TRUE.equals(rol.getPuedeVerReportes()),
                     "No tienes permisos para ver reportes");
