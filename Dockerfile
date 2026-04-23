@@ -26,4 +26,4 @@ COPY --from=build /app/target/botica-0.0.1-SNAPSHOT.jar /app/botica.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java","-Xms256m","-Xmx512m","-XX:+UseG1GC","-XX:MaxGCPauseMillis=200","-XX:InitiatingHeapOccupancyPercent=35","-XX:+ParallelRefProcEnabled","-XX:+UnlockExperimentalVMOptions","-XX:G1NewCollectionHeuristicWeight=20","-jar","/app/botica.jar"]
+ENTRYPOINT ["java","-Xms256m","-Xmx512m","-XX:+UseG1GC","-XX:MaxGCPauseMillis=200","-XX:InitiatingHeapOccupancyPercent=35","-XX:+ParallelRefProcEnabled","-jar","/app/botica.jar"]
