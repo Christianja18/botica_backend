@@ -7,13 +7,15 @@ import com.botica.botica.entity.Rol;
 import com.botica.botica.entity.Usuario;
 import com.botica.botica.exception.UnauthorizedException;
 import com.botica.botica.repository.UsuarioRepository;
-import lombok.Builder;
+import com.botica.botica.service.support.JwtTokenService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -21,11 +23,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final long SESSION_HOURS = 8L;
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioService usuarioService;
-    private final ConcurrentHashMap<String, AuthSession> sessions = new ConcurrentHashMap<>();
+    private final JwtTokenService jwtTokenService;
+    private final ConcurrentHashMap<String, Instant> revokedTokens = new ConcurrentHashMap<>();
+
+    @Value("${botica.auth.session-hours:8}")
+    private long sessionHours;
 
     public AuthResponseDTO login(LoginRequestDTO request) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(request.getEmail())
@@ -33,33 +38,30 @@ public class AuthService {
 
         validateAccess(usuario, request.getPassword());
 
-        String token = UUID.randomUUID().toString();
-        LocalDateTime expiresAt = LocalDateTime.now().plusHours(SESSION_HOURS);
-        sessions.put(token, AuthSession.builder()
-                .token(token)
-                .userId(usuario.getIdUsuario())
-                .expiresAt(expiresAt)
-                .build());
+        Instant expiresAt = Instant.now().plusSeconds(sessionHours * 3600);
+        String token = jwtTokenService.generateToken(usuario.getIdUsuario(), expiresAt);
 
         return buildResponse(token, expiresAt, usuario);
     }
 
     public AuthResponseDTO getCurrentSession(String token) {
-        AuthSession session = getValidSession(token);
-        Usuario usuario = loadActiveUser(session.getUserId());
-        return buildResponse(session.getToken(), session.getExpiresAt(), usuario);
+        JwtTokenService.JwtClaims claims = getValidClaims(token);
+        Usuario usuario = loadActiveUser(claims.userId());
+        return buildResponse(token, claims.expiresAt(), usuario);
     }
 
     public Usuario getAuthenticatedUser(String token) {
-        AuthSession session = getValidSession(token);
-        return loadActiveUser(session.getUserId());
+        JwtTokenService.JwtClaims claims = getValidClaims(token);
+        return loadActiveUser(claims.userId());
     }
 
     public void logout(String token) {
         if (token == null || token.isBlank()) {
             throw new UnauthorizedException("Token de sesion no proporcionado");
         }
-        sessions.remove(token);
+        JwtTokenService.JwtClaims claims = getValidClaims(token);
+        revokedTokens.put(token, claims.expiresAt());
+        removeExpiredRevocations();
     }
 
     public String extractToken(String authorizationHeader) {
@@ -80,22 +82,17 @@ public class AuthService {
         }
     }
 
-    private AuthSession getValidSession(String token) {
+    private JwtTokenService.JwtClaims getValidClaims(String token) {
         if (token == null || token.isBlank()) {
             throw new UnauthorizedException("Token de sesion no proporcionado");
         }
 
-        AuthSession session = sessions.get(token);
-        if (session == null) {
-            throw new UnauthorizedException("La sesion no existe o ya expiro");
+        removeExpiredRevocations();
+        if (revokedTokens.containsKey(token)) {
+            throw new UnauthorizedException("La sesion ya fue cerrada");
         }
 
-        if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
-            sessions.remove(token);
-            throw new UnauthorizedException("La sesion expiro");
-        }
-
-        return session;
+        return jwtTokenService.validateToken(token);
     }
 
     private Usuario loadActiveUser(Integer userId) {
@@ -116,11 +113,11 @@ public class AuthService {
         }
     }
 
-    private AuthResponseDTO buildResponse(String token, LocalDateTime expiresAt, Usuario usuario) {
+    private AuthResponseDTO buildResponse(String token, Instant expiresAt, Usuario usuario) {
         return AuthResponseDTO.builder()
                 .token(token)
                 .tokenType("Bearer")
-                .expiresAt(expiresAt.format(DATE_TIME_FORMATTER))
+                .expiresAt(LocalDateTime.ofInstant(expiresAt, ZoneId.systemDefault()).format(DATE_TIME_FORMATTER))
                 .usuario(buildUser(usuario))
                 .build();
     }
@@ -149,22 +146,8 @@ public class AuthService {
         return (nombre + " " + apellido).trim();
     }
 
-    @Builder
-    private static class AuthSession {
-        private String token;
-        private Integer userId;
-        private LocalDateTime expiresAt;
-
-        public String getToken() {
-            return token;
-        }
-
-        public Integer getUserId() {
-            return userId;
-        }
-
-        public LocalDateTime getExpiresAt() {
-            return expiresAt;
-        }
+    private void removeExpiredRevocations() {
+        Instant now = Instant.now();
+        revokedTokens.entrySet().removeIf(entry -> entry.getValue().isBefore(now));
     }
 }

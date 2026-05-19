@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   app:
     build: .
@@ -8,11 +6,12 @@ services:
     networks:
       - botica-net
     environment:
-      - DB_URL=jdbc:mysql://dbbotica:3306/botica_db
-      - DB_USERNAME:root
-      - DB_PASSWORD:root
-      - SERVER_PORT:8080
-      - JPA_SHOW_SQL:false
+      DB_URL: jdbc:mysql://dbbotica:3306/botica_db
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      SERVER_PORT: 8080
+      JPA_SHOW_SQL: false
+      BOTICA_JWT_SECRET: ${BOTICA_JWT_SECRET:?Configura BOTICA_JWT_SECRET en .env o en el entorno}
 networks:
   botica-net:
     external: true

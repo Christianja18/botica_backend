@@ -4,6 +4,7 @@ import com.botica.botica.dto.AuthResponseDTO;
 import com.botica.botica.dto.LoginRequestDTO;
 import com.botica.botica.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
+    @SecurityRequirements
     @Operation(summary = "Iniciar sesión", description = "Valida email y contraseña contra el usuario registrado")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));

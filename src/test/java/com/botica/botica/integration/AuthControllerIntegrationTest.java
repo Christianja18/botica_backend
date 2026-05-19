@@ -105,6 +105,31 @@ class AuthControllerIntegrationTest {
 
     @Test
     void meDebeRetornarSesionConTokenValido() throws Exception {
+        String token = loginAndExtractToken();
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuario.nombreCompleto").value("Maria Perez"))
+                .andExpect(jsonPath("$.usuario.puedeAdministrarUsuarios").value(true));
+    }
+
+    @Test
+    void sesionDebeSeguirActivaTrasRefrescarPaginaSiElFrontendConservaToken() throws Exception {
+        String token = loginAndExtractToken();
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuario.email").value("maria.perez@botica.com"));
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuario.email").value("maria.perez@botica.com"));
+    }
+
+    private String loginAndExtractToken() throws Exception {
         String payload = """
                 {
                   "email": "maria.perez@botica.com",
@@ -112,7 +137,7 @@ class AuthControllerIntegrationTest {
                 }
                 """;
 
-        String token = mockMvc.perform(post("/api/auth/login")
+        return mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
@@ -120,11 +145,5 @@ class AuthControllerIntegrationTest {
                 .getResponse()
                 .getContentAsString()
                 .replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
-
-        mockMvc.perform(get("/api/auth/me")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.usuario.nombreCompleto").value("Maria Perez"))
-                .andExpect(jsonPath("$.usuario.puedeAdministrarUsuarios").value(true));
     }
 }

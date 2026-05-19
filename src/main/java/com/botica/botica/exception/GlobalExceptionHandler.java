@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationException(MethodArgumentNotValidException ex) {
-        logger.warn("Validation error: {}", ex.getMessage());
+        logger.warn("Validation error: {} field error(s)", ex.getBindingResult().getFieldErrorCount());
         Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Datos de entrada invalidos");
         body.put("errors", ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> Map.of("field", error.getField(), "message", error.getDefaultMessage()))
@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        logger.error("Data integrity violation: {}", ex.getMessage());
+        logger.warn("Data integrity violation");
         String message = "Error de integridad de datos";
         if (ex.getMessage() != null && ex.getMessage().contains("Data too long")) {
             message = "Los datos proporcionados exceden la longitud permitida para uno o mas campos";

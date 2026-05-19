@@ -38,7 +38,7 @@ public class UsuarioDTO {
 
     @NotBlank(message = "La contrasena es obligatoria", groups = OnCreate.class)
     @Size(min = 8, message = "La contrasena debe tener minimo 8 caracteres", groups = OnCreate.class)
-    @Schema(description = "Hash de la contrasena (minimo 8 caracteres)", example = "SecurePass123", required = true)
+    @Schema(description = "Contrasena en texto plano solo para crear o rotar credencial. Nunca se retorna.", example = "SecurePass123", required = true, accessMode = Schema.AccessMode.WRITE_ONLY)
     private String passwordHash;
 
     @NotNull(message = "El estado activo es obligatorio")

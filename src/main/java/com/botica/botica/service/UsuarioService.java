@@ -71,8 +71,7 @@ public class UsuarioService {
     }
 
     public Usuario save(Usuario usuario) {
-        logger.info("Guardando usuario: nombre={}, apellido={}, email={}",
-                usuario.getNombre(), usuario.getApellido(), usuario.getEmail());
+        logger.info("Guardando usuario id={}", usuario.getIdUsuario());
 
         boolean emailTaken = usuarioRepository.existsByEmail(usuario.getEmail());
         if (usuario.getIdUsuario() == null) {
